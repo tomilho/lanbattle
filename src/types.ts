@@ -16,7 +16,8 @@ export namespace Message {
   | Message.Init;
 
   export type Outgoing = 
-  | Message.Pong;
+  | Message.Pong
+  | Message.Welcome;
 
   export interface Init {
     type: 'init';
@@ -25,9 +26,8 @@ export namespace Message {
   export interface Welcome {
     type: 'wlcm';
     data: {
-      display: Render,
-      tankID: null | string,
-      position: Vector2
+      whoami: Render,
+      qr: string | null,
     }
   }
   export interface Ping {
@@ -70,10 +70,7 @@ export namespace Game {
   /**
    * Game Logic.
    * 
-   * Implemented by both client and server. Each
-   * class customizes the methods based on their
-   * role in the architecture.
-   * 
+   * Implemented by the server only.
    * Variables:
    * 
    * isRunning: used in server implementation to see if the server is running
@@ -81,9 +78,8 @@ export namespace Game {
   export interface Logic {
     isRunning?: boolean;
     handleSession(webSocket: WebSocket): Promise<void>;
-    processMessages(): void;
+    processStateMessages(): void;
     sendState(): void;
-    mainLoop(): void;
   }
 }
 

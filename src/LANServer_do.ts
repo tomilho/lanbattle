@@ -1,4 +1,4 @@
-import type { Message, Game } from './types';
+import { Message, Game, Render } from './types';
 
 interface Controller {
   storage: DurableObjectStorage;
@@ -29,11 +29,11 @@ export class LANServer implements Game.Logic {
   }
 
   mainLoop(): void {
-    this.processMessages();
+    this.processStateMessages();
     this.sendState();
   }
 
-  processMessages(): void {
+  processStateMessages(): void {
     // Every new cycle starts by reading all of the messages at that specific moment
     this.messageBuffer.forEach(msg => {
       switch(msg.type) {
@@ -42,13 +42,10 @@ export class LANServer implements Game.Logic {
         break;  
       }
     })
-      
-
+    
     this.messageBuffer = [];
   }
-
   sendState(): void {
-    
   }
 
   async fetch(request: Request) {
@@ -71,7 +68,7 @@ export class LANServer implements Game.Logic {
     // Initiates the main game loop 
     if(this.isRunning!) {
       // TODO: Save Interval
-      setInterval(() => this.mainLoop(), 1/30)
+      setInterval(() => this.mainLoop(), 1000/30);
     }
 
     // Now we return the other end of the pair to the client.
@@ -89,10 +86,28 @@ export class LANServer implements Game.Logic {
     // Message Receiver Handler.
     const onMessage: ((ev: MessageEvent) => any) =  async (event) => {
       try {
+        console.log(event.data);
         const message = JSON.parse(
           typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
         ) as Message.Incoming;
+        
+        // Init Message Type -> Processed outside of the game loop
+        if(message.type === 'init') {
+          webSocket.send(JSON.stringify({
+            type: 'wlcm',
+            data: {
+              whoami: this.clients.length < 2 ? Render.DISPLAY : Render.CONTROLLER,
+              // TODO: Generate a random client id!
+              qr: 'no qr for now...',
+            }
+          }));
+        } else {
+          this.messageBuffer.push(message);
+        }
       } catch(err) {
+        if(MINIFLARE) {
+          console.log(err)
+        }
         webSocket.send(JSON.stringify({ error: 'Something went wrong!'}));
       }
     }

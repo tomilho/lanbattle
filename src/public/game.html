@@ -38,70 +38,45 @@
   </div>
   <script>
 
+    /**
+     * Used by Display to render the tanks, etc.
+     * */
     class Render {
-      static DISPLAY = 1;
-      static CONTROLLER = 2;
-      #renderType;
       #canvas;
       #ctx;
+      #gameMaps;
 
-      constructor(renderType) {
-        switch (renderType) {
-          case Render.DISPLAY:
-            this.#initDisplay();
-            break;
-          case Render.CONTROLLER:
-            this.#initController();
-            break;
-          default:
-            throw new Error('Unknown Render Type');
-        }
-        this.#renderType = renderType;
-      }
+      constructor(canvas) {
+        this.#canvas = canvas;
+        this.#ctx = canvas.getContext('2d');     
+        // Only one map for now!
+        this.#gameMaps = {
+          size: { x: 1600, y: 900 },
+          boundaryWalls: [
+            [[0, 0], [1, 0]],
+            [[1, 0], [1, 1]],
+            [[0, 1], [1, 1]],
+            [[0, 1], [0, 0]],
+          ],
+          0: [
+            [[0.5, 0.5], [0.5, 0.8]]
+            // Inner Walls
 
-      /**
-       * Used in LAN, WAN and MAN.
-       * */
-      #initDisplay() {
-        this.#canvas = document.createElement('canvas');
-        const ctx = this.#canvas.getContext('2d');
-        this.#ctx = ctx;
-        document.body.appendChild(this.#canvas);
-
-      }
-
-      /**
-       * Must be used by players in LAN. 
-       * Optional in WAN and MAN. 
-       * */
-      #initController() {
-
+          ]
+        }   
       }
       
-      
-      /**
-       * Draws dynamic elements - tanks, bombs
-       *
-       * @see #initDisplay - Static elements are 
-       * drawn once when the display is initialized.
-      */ 
       draw(state) {
-        // Skips drawing if this device is tasked to be a controller.
-        if (this.#renderType === Render.CONTROLLER) { return; }
         // Checks if some resizing is needed
-        if(!this.#resize()) {
-          const canvas = this.#canvas;
-          this.#ctx.fillRect(0,0, canvas.width, canvas.height);
-          this.#ctx.beginPath();
-
-        }
-        
+        this.#resize();
         this.map(0);
         // Draws the tanks position
+        /*
         const tanks = state.tanks;
         for(const tank of tanks) {
           this.tank(tank);
         }
+        */
       }
 
       tank(tank) {
@@ -127,6 +102,7 @@
       }
 
       map(mapId) {
+        const GameMaps = this.#gameMaps;
         const map = GameMaps[mapId];
         const ctx = this.#ctx;
         ctx.strokeStyle = 'black ';
@@ -154,9 +130,11 @@
 
       #resize() {
         const canvas = this.#canvas;
+        const GameMaps = this.#gameMaps;
         //if(canvas.style.height.startsWith(innerHeight.toString()) && canvas.style.width.startsWith(innerWidth.toString())) {
         //  return false;
         //}
+        console.log('HELLO???????');
         const dpr = devicePixelRatio;
 
         canvas.width = GameMaps.size.x * dpr;
@@ -175,47 +153,26 @@
     }
 
     class Client {
-      #state;#socket;
-      #render;
-      #isReady;
-      #messageQueue;
-      #input;
-      #clientHz;
-      constructor(hz) {
+      static #DISPLAY = 1;
+      static #CONTROLLER = 2;
+      #messageQueue;   
+      #socket;   
+      constructor() {
         this.#socket = new WebSocket(`${location.origin.replace(/^http/, 'ws')}${location.pathname}`);
-        this.#clientHz = hz;
-        this.#messageQueue = [];
-        this.#input = {
-          last_ts: undefined,
-          interaction: undefined,
-        };
-        this.#render = null;
-        this.#isReady = false;
-        this.#state = {
-          tanks: []
-        };
-
-        // Handles the newly connected session. 
         this.#handleSession();
-
+        this.#messageQueue = [];
       }
 
-      /**
-       * Update Cycle, aka main loop.
-       * 
-       * Each update cycle is coordinated with requestAnimationFrame.
-       * The approach taken is an slight adaption of Gabriel Gambetta's update().
-       * 
-       * @see https://www.gabrielgambetta.com/client-prediction-live-demo.html
-       * */
-      update() {
-        this.#processMessages();
-        // Waits until the client is ready.
-        if (this.#isReady) {
-          this.#processInput();
-          this.#render.draw(this.#state);
-        }
-        requestAnimationFrame(() => this.update());
+      getMessages() {
+        return this.#messageQueue;
+      }
+
+      getSocket() {
+        return this.#socket;
+      }
+
+      clearMessages() {
+        this.#messageQueue = [];
       }
 
       /**
@@ -223,10 +180,33 @@
        * Messages are delegated to X function.
       */
       async #handleSession() {
-        const onMessage = async (event) => this.#messageQueue.push(event.data);
+        const onMessage = async (event) => { 
+          try {
+            const message = JSON.parse(
+              typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
+            );
+
+            // REMOVE
+            console.log('msg received: ',message);
+
+            if(message.type === 'wlcm') {
+              const whoami = message.data.whoami === Client.CONTROLLER ? 
+                              new Controller(this) : new Display(this);
+              // TODO: do something with QR
+            } if(message.error) {
+              console.log(message.error);
+            } else {
+              this.#messageQueue.push(event.data)
+            }
+          } catch(err) {
+            // TODO: Display error messages
+            console.log(err);
+          }
+
+        };
         const onOpen = (event) => {
-          // Sends init message
-          this.#socket.send('init');      
+          // Sends init message as soon as it opens up.
+          this.#socket.send(JSON.stringify({type: 'init'}));      
         }
         const onClose = (event) => {
           console.log('connection lost')
@@ -240,105 +220,84 @@
         this.#socket.addEventListener('close', onClose);
         this.#socket.addEventListener('error', onError);
       }
+    
+    }
 
-      /**
-       * Non-blocking input handling. The input is constantly received
-       * without blocking the main game loop through events and stored
-       * in the client. Whenever the input is needed a simple read is done.
-       * 
-       * The input can be either keyboard or motion based. Preferance is 
-       * given to motion.
-       * */
-      #handleInput() {
-        // TODO: set which input to use (device or keyboard)
-        
-        this.#input.interaction = {
-          w: false, 
-          s: false,
-          a: false,
-          d: false,
-          space: false,
-        };
-        const input = this.#input.interaction;
-        // Keyboard Inputs for Keyboard users
-        const onKeyUpOrDown = (event) => {
-          switch(event.code) {
-            case "KeyW": case "ArrowUp":
-              input.w = (event.type === "keydown");
-            break;
-            case "KeyS": case "ArrowDown":
-              input.s = event.type === "keydown";
-              break;
-            case "KeyA": case "ArrowLeft":
-              input.a = event.type === "keydown";
-              break;
-            case "KeyD": case "ArrowRight":
-              input.d = event.type === "keydown";
-              break;
-            case "Space":
-              input.space = event.type === "space";
-              break;
-          }
+    class Controller {
+      #client;
+      #state;
+      #input;
+      constructor(client) {
+        this.#client = client;
+        this.#input = {
+          data: '123',
         }
-        
-        window.onkeydown = window.onkeyup = onKeyUpOrDown;
-        
-        // Device-motion inputs for Mobile-controller users
-      
+        // TODO: Controller Display. Own Render Class or everything???
+        // TODO: Ask for permission for device motion.
+        this.#handleInput();
+        requestAnimationFrame(() => this.#update());
       }
 
-      
-      #processInput() {
-        const input = this.#input;
-        const now_ts = Date.now();
-        const last_ts = input.last_ts || now_ts;
-        const dt_ts = (now_ts - last_ts) / 1000.0;
-        input.last_ts = now_ts;
-
-        const tickInput = {
-          // Used in lag compensation
-          timestamp: now_ts,
-          // Used to know what was going on during this time
-          press_time: dt_ts,
-          // Used in prediction/reconciliation
-          sequence_number: this.#input.sequence_number++,
-          // Keyboard input
-          keyboard: input.interaction,
-          // Controller input
-          controller: null,
-        }
-
-        // Client-side prediction as Keyboard
-        this.#state.tanks[0].applyInputAsKeyboard(tickInput);
-
-        
-      }
-
-      #sendState(){
-      }
-
-      /**
-       * Processes the messages 
-       * */
       #processMessages() {
-        this.#messageQueue.forEach(msg => {
+        this.#client.getMessages().forEach(msg => {
           switch (msg.type) {
-            case "init":
-              this.#render = new Render(msg.data.display);
-              this.#state.tanks.push(new Tank(msg.data.tankID, msg.data.spawn));
-              this.#handleInput();
-              this.#isReady = true;
-              break;
             case "error":
               // TODO: NOTIFY ERROR
               break;       
           }
         });
 
-        this.#messageQueue = [];
+        this.#client.clearMessages();
       }
 
+      #handleInput() {    
+        // Device-motion inputs for Mobile-controller users
+      }
+      
+      #sendInput() {
+
+      }
+
+      #update() {
+        this.#processMessages();
+        this.#sendInput();
+        requestAnimationFrame(() => this.#update());
+      }
     }
+
+    class Display {
+      #client;
+      #state;
+      #render;
+
+      constructor(client) {
+        this.#client = client;
+        const canvas = document.createElement('canvas');
+        document.body.appendChild(canvas);
+        this.#render = new Render(canvas);
+
+        requestAnimationFrame(() => this.#update());
+      }
+
+      #processMessages() {
+        this.#client.getMessages().forEach(msg => {
+          switch (msg.type) {
+            case "error":
+              // TODO: NOTIFY ERROR
+              break;       
+          }
+        });
+
+        this.#client.clearMessages();
+      }
+
+      #update() {
+        this.#processMessages();
+        this.#render.draw(this.#state);
+        requestAnimationFrame(() => this.#update());
+      }
+    }
+
     
     class Tank {
       #id;
@@ -384,29 +343,11 @@
     }
 
     // Only one map for now...
-    // Walls coordinates are normalized.
-    const GameMaps = {
-      size: { x:1600, y:900 },
-      boundaryWalls: [
-        [[0,0], [1,0]],
-        [[1,0], [1,1]],
-        [[0,1], [1,1]],
-        [[0,1], [0,0]],
-      ],
-      0: [
-        [[0.5, 0.5], [0.5, 0.8]]
-        // Inner Walls
-
-      ]
-    }
+    // Walls Vertices' coordinates are normalized.
     
     ;(function () {
         // Initializes the client
-        const client = new Client(15);
-        // Start the main loop
-        requestAnimationFrame(() => client.update());
+        const client = new Client();
     })();
-
-
   </script>
 </body>
