@@ -1,0 +1,19 @@
+# todo
+name = ""
+main = "src/workers.ts"
+compatibility_date = "2022-05-18"
+
+[dev]
+# Changed to connect phones .
+ip = "192.168.1.71"
+
+[durable_objects]
+bindings = [
+  { name = "LANServer", class_name = "LANServer" }
+]
+
+[[migrations]]
+# Should be unique for each entry
+tag = "v1" 
+# Array of new classes
+new_classes = ["WordleDurableObject"] 

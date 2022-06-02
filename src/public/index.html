@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+      html,
+      body {
+        display: grid;
+        place-items: center center;
+        min-height: 100vh;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      h1 {
+        text-align: center;
+      }
+      .header-info {
+        text-align: center;
+        color: gray;
+      }
+      
+      .options {
+        text-align: center;
+        padding: 1.25rem;
+      }
+      
+      .options button {
+        padding: 0.25rem; 
+        margin: 0.20rem;
+      }
+    </style>
+    <script>
+      async function createParty() {
+        const party = await fetch('/new');
+        location.href = party.url;        
+      }
+    </script>
+  </head>
+
+  <body>
+    <main>
+      <div>
+        <h1>LAN Tank Battle</h1>
+        <div class="header-info">A couch game to play with up-to 3 friends.</div>
+        <div class="options">
+          <button>Connect to a lobby</button>
+          <button onclick="createParty()">Create a new lobby (This device will be the shared display)</button>
+        </div>
+      </div>
+      <div class="help">
+        <h2>Quick Introduction</h2>
+          <p>To play you'll need all players to use their phone as controllers and a display device, such as laptop or tv, to display the game.
+            It is recommend to use a large screen so all players can be comfortable to play. 
+          </p>
+        <h2>Creating the lobby</h2>
+         <p>
+            Simple press on "create a new lobby" on the display device. Soon you'll see a QR code 
+        </p>
+        <h2>Inviting friends</h2>
+      </div>
+    </main>
+
+  </body>
+</html>
