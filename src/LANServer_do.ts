@@ -4,14 +4,16 @@ interface Controller {
   storage: DurableObjectStorage;
 }
 
+const dictionary = ['a', 'b','c','d','e','f','g','l','m'];
 /**
- * Durable Object for the LAN party server.
+ * Durable Object for the LAN party game server.
  * 
  * Although this is not a LAN server, running this at 
  * edge provides a similar experience as if it would 
  * have been run locally.
  */
 export class LANServer implements Game.Logic {
+  
   storage: DurableObjectStorage;
   clients: WebSocket[];
   messageBuffer: Message.Incoming[]
@@ -45,6 +47,7 @@ export class LANServer implements Game.Logic {
     
     this.messageBuffer = [];
   }
+
   sendState(): void {
   }
 
@@ -86,7 +89,6 @@ export class LANServer implements Game.Logic {
     // Message Receiver Handler.
     const onMessage: ((ev: MessageEvent) => any) =  async (event) => {
       try {
-        console.log(event.data);
         const message = JSON.parse(
           typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
         ) as Message.Incoming;
@@ -125,5 +127,4 @@ export class LANServer implements Game.Logic {
     webSocket.addEventListener('error', onError);
 
   }
-
 }

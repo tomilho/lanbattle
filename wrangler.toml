@@ -3,9 +3,17 @@ name = ""
 main = "src/workers.ts"
 compatibility_date = "2022-05-18"
 
+
+kv_namespaces = [
+  # Not sure if the namespaces are supposed to be hidden or not.
+  # I will hide them anyway.
+  { binding = "PartyCodes", id="_", preview_id="_" }
+]
+
 [dev]
 # Changed to connect phones .
 ip = "192.168.1.71"
+
 
 [durable_objects]
 bindings = [
