@@ -134,7 +134,6 @@
         //if(canvas.style.height.startsWith(innerHeight.toString()) && canvas.style.width.startsWith(innerWidth.toString())) {
         //  return false;
         //}
-        console.log('HELLO???????');
         const dpr = devicePixelRatio;
 
         canvas.width = GameMaps.size.x * dpr;
@@ -153,10 +152,9 @@
     }
 
     class Client {
-      static #DISPLAY = 1;
-      static #CONTROLLER = 2;
       #messageQueue;   
       #socket;   
+      #id;
       constructor() {
         this.#socket = new WebSocket(`${location.origin.replace(/^http/, 'ws')}${location.pathname}`);
         this.#handleSession();
@@ -185,17 +183,20 @@
             const message = JSON.parse(
               typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
             );
-
             // REMOVE
             console.log('msg received: ',message);
 
             if(message.type === 'wlcm') {
-              const whoami = message.data.whoami === Client.CONTROLLER ? 
-                              new Controller(this) : new Display(this);
+              // 2: Controller; 1: Display
+              const actor = message.data.actor === 2 ? new Controller(this) : new Display(this);
+              this.#id = message.data.clientID; 
               // TODO: do something with QR
-            } else if(message.error) {
+              
+            } else if(message.type === 'err') {
               console.log(message.error);
             } else {
+              // Main loop messages are processed inside the 
+              // game loop
               this.#messageQueue.push(event.data)
             }
           } catch(err) {
@@ -298,7 +299,6 @@
       }
     }
 
-    
     class Tank {
       #id;
       #position;

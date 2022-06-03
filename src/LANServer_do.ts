@@ -85,7 +85,6 @@ export class LANServer implements Game.Logic {
 
     // Create our session and add it to the sessions list.
     this.clients.push(webSocket);
-
     // Message Receiver Handler.
     const onMessage: ((ev: MessageEvent) => any) =  async (event) => {
       try {
@@ -98,14 +97,20 @@ export class LANServer implements Game.Logic {
           webSocket.send(JSON.stringify({
             type: 'wlcm',
             data: {
-              whoami: this.clients.length < 2 ? Render.DISPLAY : Render.CONTROLLER,
+              actor: this.clients.length === 1 ? Render.DISPLAY : Render.CONTROLLER,
+              clientID: '123',
               // TODO: Generate a random client id!
               qr: 'no qr for now...',
             }
-          }));
+          } as Message.Welcome));
+        } else if(message.type === 'err') {
+          console.log(message.data.error);
         } else {
-          this.messageBuffer.push(message);
+          // Stores other messages to be processed on the main game loop.
+          this.messageBuffer.push(message as Message.Incoming); 
         }
+
+
       } catch(err) {
         if(MINIFLARE) {
           console.log(err)

@@ -10,14 +10,23 @@ export type Vector2 = { x: number, y: number};
  * On every connect, either
  */
 export namespace Message {
+  export interface Error {
+    type: 'err';
+    data: {
+      error: string
+    }
+  }
+
   export type Incoming = 
   | Message.Tank.Velocity
   | Message.Ping
-  | Message.Init;
+  | Message.Init
+  | Message.Error;
 
   export type Outgoing = 
   | Message.Pong
-  | Message.Welcome;
+  | Message.Welcome
+  | Message.Error;
 
   export interface Init {
     type: 'init';
@@ -26,7 +35,8 @@ export namespace Message {
   export interface Welcome {
     type: 'wlcm';
     data: {
-      whoami: Render,
+      actor: Render,
+      clientID: string,
       qr: string | null,
     }
   }
