@@ -1,17 +1,21 @@
-# todo
-name = ""
-main = "src/workers.ts"
+name = "tank game"
+main = "./src/workers.mjs"
 compatibility_date = "2022-05-18"
 
 
 kv_namespaces = [
   # Not sure if the namespaces are supposed to be hidden or not.
   # I will hide them anyway.
-  { binding = "PartyCodes", id="_", preview_id="_" }
+  { binding = "PartyCodes", id="56762d9b8f6a4b5794898f0baa80f963", preview_id="eb977ae811bd4fc6bbe3b69987669443" }
 ]
 
+[[rules]]
+type = "Data"
+globs = ["*.html", "*.css", "*.g.js"]
+fallthrough = true
+
 [dev]
-# Changed to connect phones .
+# Changed to connect phones.
 ip = "192.168.1.71"
 
 

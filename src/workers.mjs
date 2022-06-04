@@ -1,25 +1,15 @@
-// @ts-ignore
-import indexHtml from './public/index.html';
-// @ts-ignore 
-import gameHTML from './public/game.html';
 import { nanoid } from 'nanoid';
 
-declare global {
-  var MINIFLARE: boolean;
-}
-
-interface Environment {
-  LANServer: DurableObjectNamespace;
-  PartyCodes: KVNamespace;
-}
+import indexHtml from './public/index.html';
+import gameHTML from './public/game.html';
+import index_js from './public/game.g.js';
 
 export { LANServer } from './LANServer_do';
 
-
-const worker: ExportedHandler<Environment> = {
+export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    let partyCode: string;
+    let partyCode;
 
     // TODO: If some some time left: refactor the code to clean it up a bit
 
@@ -28,6 +18,8 @@ const worker: ExportedHandler<Environment> = {
       // Root Path
       case "/":
         return new Response(indexHtml, { headers: { 'content-type': 'text/html' }});
+      case "/index.js":
+        return new Response(index_js, {headers: {'content-type': 'text/javascript'}});
     }
 
     // Gets lobby id from pathname
@@ -40,8 +32,10 @@ const worker: ExportedHandler<Environment> = {
       // Generates a random code to be used to create a new DO. 
       // This is not the best use of KV, but I wanted to give 
       // KV a try. 
-      const code = nanoid(8);
-        
+      let code = nanoid(8);
+      if(MINIFLARE) {
+        code = '12345678';
+      }
       // Generates QR codes through 
       
       // Creates an unique ID as it will be significantly faster 
@@ -70,7 +64,7 @@ const worker: ExportedHandler<Environment> = {
         return env.LANServer.get(id).fetch(request);
       } else {
         // Send this after a redirect to a party lobby
-        return new Response(gameHTML, { headers: {'content-type': 'text/html'}, status: 302})
+        return new Response(gameHTML, { headers: {'content-type': 'text/html'}, status: 200})
       }
     }
 
@@ -79,6 +73,3 @@ const worker: ExportedHandler<Environment> = {
 
   },
 };
-
-
-export default worker;

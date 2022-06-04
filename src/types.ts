@@ -1,3 +1,5 @@
+
+
 export enum Render {
   DISPLAY = 1,
   CONTROLLER = 2,
@@ -18,7 +20,7 @@ export namespace Message {
   }
 
   export type Incoming = 
-  | Message.Tank.Velocity
+  | Message.Tank.Movement
   | Message.Ping
   | Message.Init
   | Message.Error;
@@ -58,15 +60,15 @@ export namespace Message {
   }
 
   export namespace Tank {    
-    export interface Velocity {
+    export interface Movement {
       type: 'position';
       data: {
         tankID: number,
-        dir: number,
-        magnitude: number,
+        rot: number,
+        position: number,
       }
     }
-    
+  
     export interface Ball {
       type: 'ball';
       data: {
@@ -91,9 +93,16 @@ export namespace Game {
     processStateMessages(): void;
     sendState(): void;
   }
+
+  export interface Collision {
+    
+  }
+
+  export interface State {
+    [key: string]: Tank;
+  }
+
+  export interface Tank {
+    
+  }
 }
-
-export interface TankState {
-
-}
-
