@@ -1,5 +1,3 @@
-import type { Tank } from './tank';
-
 export enum Render {
   DISPLAY = 1,
   CONTROLLER = 2,
@@ -31,7 +29,8 @@ export namespace Message {
   | Message.Pong
   | Message.Welcome
   | Message.Error
-  | Message.Tank.Movement;
+  | Message.Tank.Movement
+  | Message.Tank.Ball;
 
   export interface Init {
     type: 'init';
@@ -67,8 +66,8 @@ export namespace Message {
       type: 'mov';
       data: {
         tankID: string,
-        position: number,
-        azimuth: number
+        position: Vector2,
+        angle: number
       }
     }
     export interface Input {
@@ -82,11 +81,12 @@ export namespace Message {
     export interface Ball {
       type: 'ball';
       data: {
-        tankID: number
+        position: Vector2
       }
     }
   }
 }
+
 
 export namespace Game {
   /**
@@ -99,9 +99,5 @@ export namespace Game {
     handleSession(webSocket: WebSocket): Promise<void>;
     processStateMessages(): void;
   }
-  
-  export interface State {
-    tanks: {[key: string]: Tank},
-    walls: []
-  }
+
 }

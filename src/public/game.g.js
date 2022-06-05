@@ -169,7 +169,7 @@ class Client {
           typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
         );
         // REMOVE
-        console.log('msg received: ', message);
+        console.log('msg received: ', message.data.);
 
         if (message.type === 'wlcm') {
           // 2: Controller; 1: Display
@@ -269,7 +269,7 @@ class Controller {
     ws.send(JSON.stringify({
       type: 'input',
       data: {
-        tankId: this.#client.getId(),
+        tankID: this.#client.getId(),
         input: this.#input
       }
     }));
@@ -342,11 +342,6 @@ class Display {
 
   #processMessages() {
     this.#client.getMessages().forEach(msg => {
-      switch (msg.type) {
-        case "tank":
-          // TODO: NOTIFY ERROR
-          break;
-      }
     });
 
     this.#client.clearMessages();
@@ -383,8 +378,7 @@ class Tank {
   const client = new Client();
   // Waits for the actor type: Controller or display; 
   const actorNumber = await client.actor;
-  new Controller(client);
-  //const actor = actorNumber === 2 ? new Controller(client) : new Display(client);
+  const actor = actorNumber === 2 ? new Controller(client) : new Display(client);
 
 })();
 

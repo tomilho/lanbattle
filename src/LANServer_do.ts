@@ -1,6 +1,5 @@
 // TODO: Credit the wordle template
 import { Message, Render, Game, Vector2 } from './types';
-import { Tank } from './tank';
 import { nanoid } from 'nanoid';
 import * as Matter from 'matter-js';
 import { Engine } from './engine';
@@ -32,7 +31,7 @@ export class LANServer implements Game.Network {
     this.clients = [];
 
     // Starts the main game loop.
-    this.interval = setInterval(() => this.mainLoop(), 16.666);
+    this.interval = setInterval(() => this.mainLoop(), 33.333);
   }
 
   mainLoop(): void {
@@ -62,10 +61,33 @@ export class LANServer implements Game.Network {
     let outMessages = [];    
     if(this.display) {
       const ws = this.display.ws;
-      
+      const tanks = this.game.getTanks();
+      for(const tankID in tanks) {
+        const tank = tanks[tankID];
+        // Pushes all the ball instances
+        tank.balls.forEach(ball => {
+          outMessages.push({
+            type: 'ball',
+            data: {
+              position: (ball.position as Vector2),
+            }
+          });
+        });
+        // Pushes tank instance
+        outMessages.push({
+          type: 'mov',
+          data: {
+            tankID: tankID,
+            position: tank.body.position,
+            angle: tank.body.angle,  
+          }
+        });
+      }
+      if(outMessages.length > 0) 
+        ws.send(JSON.stringify(outMessages));
     }
   }
-  
+
   async fetch(request: Request) {
     // Check if the party is full
     if (this.clients.length === 5) {
@@ -131,9 +153,7 @@ export class LANServer implements Game.Network {
             this.messageBuffer.push(message);
         }
       } catch(err) {
-        if(true) {
           console.log(err)
-        }
         webSocket.send(JSON.stringify({ error: 'Something went wrong!'}));
       }
     }

@@ -1,5 +1,6 @@
 import * as Matter from 'matter-js';
-import { Vector2, TankInput } from './types';
+import type { Vector2, TankInput, Message } from './types';
+
 
 const EngineOptions = {
   gravity: {
@@ -22,8 +23,8 @@ const Walls = {
 export class Engine {
   
   engine: Matter.Engine;
-  tanks: any;
-  world: Matter.World
+  tanks: {[key:string] : Tank};
+  world: Matter.World;
 
   constructor() {
     this.engine = Matter.Engine.create(EngineOptions);
@@ -38,15 +39,22 @@ export class Engine {
     Matter.Events.on(this.engine, 'collisionStart', (event) => {
       for (const pair of event.pairs) {
         if(!pair.activeContacts) continue;
-        pair.bodyA.label
+        if(pair.bodyA.label === 'ball' && pair.bodyB.label === 'tank' ||
+           pair.bodyA.label === 'tank' && pair.bodyB.label === 'tank') {
+            console.log('test');
+          // TODO: Remove from composite
+          for(const clientID in this.tanks){
+            const tank = this.tanks[clientID];
+          }
+        }
       }
     })
   }
 
-  getBodies() {
-    return this.world.bodies.filter(body => body.label !== 'wall');
+  getTanks() {
+    return this.tanks;
   }
-
+  
   loadStaticWalls() {
     // Single Map
     for (const wall of Walls[0]) {
@@ -56,19 +64,20 @@ export class Engine {
 
   addTank(clientID: string) {
     const tank = new Tank({ x: 0, y: 0 });
+    this.tanks[clientID] = tank;
     Matter.Composite.add(this.world, tank.body);
   }
 
   deleteTank(clientID: string) {
     const tank = this.tanks[clientID];
     if (!tank) { return; }
-    Matter.Composite.remove(this.world, tank);
+    Matter.Composite.remove(this.world, tank.body);
   }
 
   update() {
     for(const tankID in this.tanks) {
       const tank = this.tanks[tankID];
-      tank.processInput();
+      tank.processInput(this.world);
     }
     Matter.Engine.update(this.engine, 33.333);
   }
@@ -80,6 +89,7 @@ class Tank {
     //TODO: Turret 
   ]
   body: Matter.Body;
+  balls: Matter.Body[];
   private newInput: TankInput;
   private lastInput: TankInput;
 
@@ -88,6 +98,7 @@ class Tank {
       parts: Tank.parts,
       label: 'tank',
     });
+    this.balls = [];
     this.newInput = { a: 0, b: 0, g: 0, fire: false };
     this.lastInput = { a:0, b:0, g:0, fire: false };
     Matter.Body.setPosition(this.body, position);
@@ -99,7 +110,8 @@ class Tank {
 
   processInput(world: Matter.World) {
     if(this.newInput.fire) {
-      const ball = Matter.Bodies.circle(300,300, 5);
+      const ball = Matter.Bodies.circle(300,300, 5, {label: 'ball'});
+      this.balls.push(ball);
       Matter.Composite.add(world, ball);     
     }
     // Beta Orientation - Tested in chrome
