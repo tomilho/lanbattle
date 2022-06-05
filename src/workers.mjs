@@ -1,8 +1,8 @@
-import { nanoid } from 'nanoid';
-
 import indexHtml from './public/index.html';
 import gameHTML from './public/game.html';
 import index_js from './public/game.g.js';
+
+import { nanoid } from 'nanoid';
 
 export { LANServer } from './LANServer_do';
 
@@ -33,7 +33,7 @@ export default {
       // This is not the best use of KV, but I wanted to give 
       // KV a try. 
       let code = nanoid(8);
-      if(MINIFLARE) {
+      if(true) {
         code = '12345678';
       }
       // Generates QR codes through 
@@ -57,6 +57,7 @@ export default {
         return new Response("Couldn't find a party with that code... :(", { status: 404 });
       }
 
+      
       // Pass the request to Durable Object to initiate the game
       if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {
         // For some reason, quotes are stored in the value. 
@@ -69,7 +70,7 @@ export default {
     }
 
     // Returns 404 not found
-    return new Response("Not found", { status: 404 });
+    return new Response("Not found. If you are trying to join a party, make sure it is only 8 characters long.", { status: 404 });
 
   },
 };

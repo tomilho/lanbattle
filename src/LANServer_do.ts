@@ -1,11 +1,11 @@
+// TODO: Credit the wordle template
 import { Message, Render, Game } from './types';
+import { Tank } from './tank';
 import { nanoid } from 'nanoid';
 
 interface Controller {
   storage: DurableObjectStorage;
 }
-
-
 /**
  * Durable Object for the LAN party game server.
  * 
@@ -15,8 +15,9 @@ interface Controller {
  */
 export class LANServer implements Game.Logic {
   storage: DurableObjectStorage;
-  display: string | undefined;
+  display: { ws: WebSocket, id: string } | undefined;
   clients: WebSocket[];
+  interval
   tanks: Game.State;
   messageBuffer: Message.Incoming[]
 
@@ -26,6 +27,9 @@ export class LANServer implements Game.Logic {
     this.tanks = {};
     this.messageBuffer = []
     this.clients = []
+
+    // Starts the main game loop.
+    this.interval = setInterval(() => this.mainLoop(), 1000/30);
   }
 
   mainLoop(): void {
@@ -34,8 +38,33 @@ export class LANServer implements Game.Logic {
   }
 
   processStateMessages(): void {
-    // Every new cycle starts by reading all of the messages at that specific moment
+    this.messageBuffer.forEach(msg => {
+      // Reads player input and overrides existing input.
+      // We wish to process the latest received input. 
+      switch(msg.type) {
+        case 'input':
+          this.tanks[msg.data.tankID].input = msg.data;
+          break;
+        
+      }
+    });
+    // TODO: Process Input and Collision
 
+    // Sends Tank Position and Azimuth to the display.
+    if(this.display) {
+      let outMessages = [];
+      for(const tank in this.tanks) {
+        const data = this.tanks[tank];
+        outMessages.push(JSON.stringify({
+          type: 'tank',
+          data: {
+            tankID: tank,
+            position: 123,
+            azimuth: 123
+          }
+        }));
+      }
+    }
     this.messageBuffer = [];
   }
 
@@ -46,7 +75,7 @@ export class LANServer implements Game.Logic {
     // Check if the party is full
     if (this.clients.length === 5) {
       return new Response("The party is full! :(", { status: 403 }) // Forbidden Status
-    }
+    } 
 
     // To accept the WebSocket request, we create a WebSocketPair (which is like a socketpair,
     // i.e. two WebSockets that talk to each other), we return one end of the pair in the
@@ -59,12 +88,6 @@ export class LANServer implements Game.Logic {
     // in a buffer to be later processed on the main game loop. 
     await this.handleSession(server);
     
-    // Initiates the main game loop 
-    if(false) {
-      // TODO: Save Interval
-      setInterval(() => this.mainLoop(), 1000/30);
-    }
-
     // Now we return the other end of the pair to the client.
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -91,7 +114,7 @@ export class LANServer implements Game.Logic {
             let actor = undefined;
             if(this.clients.length === 1) {
               actor = Render.DISPLAY;
-              this.display = clientID;
+              this.display = { ws: webSocket, id: clientID };
             } else {
               actor = Render.CONTROLLER;
               this.tanks[clientID] = new Tank();
@@ -113,7 +136,7 @@ export class LANServer implements Game.Logic {
             this.messageBuffer.push(message);
         }
       } catch(err) {
-        if(MINIFLARE) {
+        if(true) {
           console.log(err)
         }
         webSocket.send(JSON.stringify({ error: 'Something went wrong!'}));

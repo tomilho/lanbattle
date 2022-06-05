@@ -1,4 +1,4 @@
-name = "tank game"
+name = "tankgame"
 main = "./src/workers.mjs"
 compatibility_date = "2022-05-18"
 
@@ -9,6 +9,7 @@ kv_namespaces = [
   { binding = "PartyCodes", id="56762d9b8f6a4b5794898f0baa80f963", preview_id="eb977ae811bd4fc6bbe3b69987669443" }
 ]
 
+
 [[rules]]
 type = "Data"
 globs = ["*.html", "*.css", "*.g.js"]
@@ -17,7 +18,6 @@ fallthrough = true
 [dev]
 # Changed to connect phones.
 ip = "192.168.1.71"
-
 
 [durable_objects]
 bindings = [

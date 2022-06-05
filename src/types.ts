@@ -5,6 +5,8 @@ export enum Render {
   CONTROLLER = 2,
 }
 
+// TODO: If time, implement movement
+export type Input = {a: number, b: number, g: number, fire: boolean};
 export type Vector2 = { x: number, y: number};
 /**
  * App Protocol 
@@ -28,7 +30,8 @@ export namespace Message {
   export type Outgoing = 
   | Message.Pong
   | Message.Welcome
-  | Message.Error;
+  | Message.Error
+  | Message.Tank.Movement;
 
   export interface Init {
     type: 'init';
@@ -61,11 +64,18 @@ export namespace Message {
 
   export namespace Tank {    
     export interface Movement {
-      type: 'position';
+      type: 'mov';
       data: {
-        tankID: number,
-        rot: number,
+        tankID: string,
         position: number,
+        azimuth: number
+      }
+    }
+    export interface Input {
+      type: 'input';
+      data: {
+        tankID: string,
+        input: Input,
       }
     }
   
@@ -95,7 +105,7 @@ export namespace Game {
   }
 
   export interface Collision {
-    
+
   }
 
   export interface State {
@@ -103,6 +113,8 @@ export namespace Game {
   }
 
   export interface Tank {
-    
+    input: any
+    position: Vector2
+    azimuth: number
   }
 }
