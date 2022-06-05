@@ -1,7 +1,9 @@
 // TODO: Credit the wordle template
-import { Message, Render, Game } from './types';
+import { Message, Render, Game, Vector2 } from './types';
 import { Tank } from './tank';
 import { nanoid } from 'nanoid';
+import * as Matter from 'matter-js';
+import { Engine } from './engine';
 
 interface Controller {
   storage: DurableObjectStorage;
@@ -13,64 +15,57 @@ interface Controller {
  * edge provides a similar experience as if it would 
  * have been run locally.
  */
-export class LANServer implements Game.Logic {
+export class LANServer implements Game.Network {
   storage: DurableObjectStorage;
   display: { ws: WebSocket, id: string } | undefined;
   clients: WebSocket[];
-  interval
-  tanks: Game.State;
-  messageBuffer: Message.Incoming[]
 
-  constructor(controller: Controller) {
+  interval: number;
+  messageBuffer: Message.Incoming[];
+  game: Engine;
+
+  constructor(controller: Controller, env: any) {
     this.storage = controller.storage;
     this.display = undefined;
-    this.tanks = {};
-    this.messageBuffer = []
-    this.clients = []
+    this.game = new Engine();
+    this.messageBuffer = [];
+    this.clients = [];
 
     // Starts the main game loop.
-    this.interval = setInterval(() => this.mainLoop(), 1000/30);
+    this.interval = setInterval(() => this.mainLoop(), 16.666);
   }
 
   mainLoop(): void {
     this.processStateMessages();
+    this.game.update();
     this.sendState();
   }
 
   processStateMessages(): void {
+    const gameState = this.game.tanks;
     this.messageBuffer.forEach(msg => {
       // Reads player input and overrides existing input.
-      // We wish to process the latest received input. 
       switch(msg.type) {
         case 'input':
-          this.tanks[msg.data.tankID].input = msg.data;
+          const tank = gameState[msg.data.tankID];
+          if(!tank) break;
+          tank.setInput(msg.data.input);
           break;
-        
       }
     });
-    // TODO: Process Input and Collision
 
-    // Sends Tank Position and Azimuth to the display.
-    if(this.display) {
-      let outMessages = [];
-      for(const tank in this.tanks) {
-        const data = this.tanks[tank];
-        outMessages.push(JSON.stringify({
-          type: 'tank',
-          data: {
-            tankID: tank,
-            position: 123,
-            azimuth: 123
-          }
-        }));
-      }
-    }
     this.messageBuffer = [];
   }
 
-  sendState(): void {
+  sendState() {
+    // Sends Tank Position and Azimuth to the display.
+    let outMessages = [];    
+    if(this.display) {
+      const ws = this.display.ws;
+      
+    }
   }
-
+  
   async fetch(request: Request) {
     // Check if the party is full
     if (this.clients.length === 5) {
@@ -117,7 +112,7 @@ export class LANServer implements Game.Logic {
               this.display = { ws: webSocket, id: clientID };
             } else {
               actor = Render.CONTROLLER;
-              this.tanks[clientID] = new Tank();
+              this.game.addTank(clientID);
             }
             // Sends welcome information
             webSocket.send(JSON.stringify({
@@ -158,4 +153,3 @@ export class LANServer implements Game.Logic {
 
   }
 }
-

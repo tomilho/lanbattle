@@ -1,4 +1,4 @@
-
+import type { Tank } from './tank';
 
 export enum Render {
   DISPLAY = 1,
@@ -6,7 +6,7 @@ export enum Render {
 }
 
 // TODO: If time, implement movement
-export type Input = {a: number, b: number, g: number, fire: boolean};
+export type TankInput = {a: number, b: number, g: number, fire: boolean};
 export type Vector2 = { x: number, y: number};
 /**
  * App Protocol 
@@ -22,7 +22,7 @@ export namespace Message {
   }
 
   export type Incoming = 
-  | Message.Tank.Movement
+  | Message.Tank.Input
   | Message.Ping
   | Message.Init
   | Message.Error;
@@ -75,7 +75,7 @@ export namespace Message {
       type: 'input';
       data: {
         tankID: string,
-        input: Input,
+        input: TankInput,
       }
     }
   
@@ -90,31 +90,18 @@ export namespace Message {
 
 export namespace Game {
   /**
-   * Game Logic.
+   * Game Network.
    * 
    * Implemented by the server only.
-   * Variables:
    * 
-   * isRunning: used in server implementation to see if the server is running
    */
-  export interface Logic {
-    isRunning?: boolean;
+  export interface Network {
     handleSession(webSocket: WebSocket): Promise<void>;
     processStateMessages(): void;
-    sendState(): void;
   }
-
-  export interface Collision {
-
-  }
-
+  
   export interface State {
-    [key: string]: Tank;
-  }
-
-  export interface Tank {
-    input: any
-    position: Vector2
-    azimuth: number
+    tanks: {[key: string]: Tank},
+    walls: []
   }
 }
