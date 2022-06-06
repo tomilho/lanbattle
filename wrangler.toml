@@ -1,4 +1,4 @@
-name = "tankgame"
+name = "lanbattle"
 main = "./src/workers.mjs"
 compatibility_date = "2022-05-18"
 
@@ -28,4 +28,4 @@ bindings = [
 # Should be unique for each entry
 tag = "v1" 
 # Array of new classes
-new_classes = ["WordleDurableObject"] 
+new_classes = ["LANServer"] 

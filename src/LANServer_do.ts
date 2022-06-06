@@ -84,7 +84,6 @@ export class LANServer implements Game.Network {
             position: ball.position as Vector2
           }
         } as Message.Tank.Ball);
-        console.log('Added Ball');
         
       }
     

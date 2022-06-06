@@ -2,12 +2,14 @@ import * as Matter from 'matter-js';
 import type { Vector2, TankInput, Message } from './types';
 import { nanoid } from 'nanoid';
 
+// Tuned Engine Options:
+// https://brm.io/matter-js/docs/classes/Engine.html
 const EngineOptions = {
   gravity: {
     scale: 0,
     x: 0,
     y: 0,
-  }
+  },
 }
 
 /**
@@ -22,6 +24,7 @@ export class Engine {
   tanks: {[key:string] : Tank};
   balls: {[key:string] : Matter.Body};
   world: Matter.World;
+  counter = 0;
 
   constructor() {
     this.engine = Matter.Engine.create(EngineOptions);
@@ -105,6 +108,7 @@ export class Engine {
       const tank = this.tanks[tankID];
       tank.processInput(this.world, this);
     }
+
     Matter.Engine.update(this.engine, 33.333);
   }
 }
@@ -134,9 +138,17 @@ class Tank {
 
   processInput(world: Matter.World, engine: Engine) {
     if(this.newInput.fire) {
-      const ball = Matter.Bodies.circle(300,300, 5, {label: 'ball'});
+      const ball = Matter.Bodies.circle(350,350, 6, {
+        label: 'ball', 
+        restitution: 1,
+        friction: 0,
+        frictionAir: 0,
+        frictionStatic: 0,
+      });
+      Matter.Body.setVelocity(ball, {x: 10, y: 10});
+      Matter.Composite.add(world, ball);
+
       engine.balls[nanoid()] = ball;
-      Matter.Composite.add(world, ball);     
     }
 
     let angle = null;

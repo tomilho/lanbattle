@@ -256,6 +256,7 @@ class Display {
         width: 800,
         height: 600,
         pixelRatio: devicePixelRatio,
+        wireframes: false,
       }
     });
     // Adds the boundary walls
@@ -306,6 +307,7 @@ class Display {
   }
 
   #updateBall({ballID, position}) {
+    console.log(position);
     const body = this.#bodies[ballID];
     Matter.Body.setPosition(body, position);
   }
