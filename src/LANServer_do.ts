@@ -1,7 +1,6 @@
 // TODO: Credit the wordle template
 import { Message, Render, Game, Vector2 } from './types';
 import { nanoid } from 'nanoid';
-import * as Matter from 'matter-js';
 import { Engine } from './engine';
 
 interface Controller {
@@ -83,8 +82,9 @@ export class LANServer implements Game.Network {
           }
         });
       }
-      if(outMessages.length > 0) 
+      if(outMessages.length > 0) {
         ws.send(JSON.stringify(outMessages));
+      }
     }
   }
 
@@ -160,6 +160,9 @@ export class LANServer implements Game.Network {
 
     const onClose: ((ev: CloseEvent) => any) = (event) => {
       // TODO: handler close better...
+      if(this.display && webSocket === this.display.ws) {
+        this.display = undefined;
+      }
       this.clients = this.clients.filter(w => w !== webSocket);
     }
 

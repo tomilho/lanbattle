@@ -9,116 +9,6 @@
 /**
  * Used by Display to draw the tanks, etc.
  * */
-class Render {
-  #canvas;
-  #ctx;
-  #gameMaps;
-
-  constructor(canvas) {
-    this.#canvas = canvas;
-    this.#ctx = canvas.getContext('2d');
-    // Only one map for now!
-    this.#gameMaps = {
-      size: { x: 1600, y: 900 },
-      boundaryWalls: [
-        [[0, 0], [1, 0]],
-        [[1, 0], [1, 1]],
-        [[0, 1], [1, 1]],
-        [[0, 1], [0, 0]],
-      ],
-      0: [
-        [[0.5, 0.5], [0.5, 0.8]]
-        // Inner Walls
-
-      ]
-    }
-  }
-
-  draw(state) {
-    // Checks if some resizing is needed
-    this.#resize();
-    this.map(0);
-    // Draws the tanks position
-    /*
-    const tanks = state.tanks;
-    for(const tank of tanks) {
-      this.tank(tank);
-    }
-    */
-  }
-
-  tank(tank) {
-    const ctx = this.#ctx;
-    const path = new Path2D();
-    const [body, turret] = tank.getMesh();
-    const scale = 25;
-    // Draws the Body
-    path.moveTo(tank.getPosition().x + body[0][0] * scale,
-      tank.getPosition().y + body[0][1] * scale);
-    for (let i = 1; i < body.length; i++) {
-      path.lineTo(tank.getPosition().x + body[i][0] * scale,
-        tank.getPosition().y + body[i][1] * scale);
-    }
-
-    path.closePath();
-    // Adds Paths into the canvas
-    ctx.fillStyle = 'blue';
-    ctx.fill(path);
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'yellow';
-    ctx.stroke(path);
-  }
-
-  map(mapId) {
-    const GameMaps = this.#gameMaps;
-    const map = GameMaps[mapId];
-    const ctx = this.#ctx;
-    ctx.strokeStyle = 'black ';
-    // Set line width
-    ctx.lineWidth = 20;
-    ctx.beginPath();
-    // Boundary Walls
-    for (const wall of GameMaps.boundaryWalls) {
-      const [start, end] = wall;
-      ctx.moveTo(start[0] * GameMaps.size.x, start[1] * GameMaps.size.y);
-      ctx.lineTo(end[0] * GameMaps.size.x, end[1] * GameMaps.size.y);
-    }
-    ctx.stroke();
-
-    // Inner Walls
-    ctx.lineWidth = 30;
-    ctx.beginPath();
-    for (const wall of map) {
-      const [start, end] = wall;
-      ctx.moveTo(start[0] * GameMaps.size.x, start[1] * GameMaps.size.y);
-      ctx.lineTo(end[0] * GameMaps.size.x, end[1] * GameMaps.size.y);
-    }
-    ctx.stroke();
-  }
-
-  #resize() {
-    const canvas = this.#canvas;
-    const GameMaps = this.#gameMaps;
-    //if(canvas.style.height.startsWith(innerHeight.toString()) && canvas.style.width.startsWith(innerWidth.toString())) {
-    //  return false;
-    //}
-    const dpr = devicePixelRatio;
-
-    canvas.width = GameMaps.size.x * dpr;
-    canvas.height = GameMaps.size.y * dpr;
-
-    this.#ctx.scale(dpr, dpr)
-    const scaleX = innerWidth / GameMaps.size.x;
-    const scaleY = innerHeight / GameMaps.size.y;
-    const scaleToFit = Math.min(scaleX, scaleY);
-
-    canvas.style.height = GameMaps.size.y * scaleToFit + 'px';
-    canvas.style.width = GameMaps.size.x * scaleToFit + 'px';
-    return true;
-  }
-
-}
-
 class Client {
   #messageQueue;
   #socket;
@@ -168,9 +58,6 @@ class Client {
         const message = JSON.parse(
           typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
         );
-        // REMOVE
-        console.log('msg received: ', message.data.);
-
         if (message.type === 'wlcm') {
           // 2: Controller; 1: Display
           this.actor = this.#actorPromise.resolve(message.data.actor)
@@ -180,7 +67,7 @@ class Client {
         } else {
           // Main loop messages are processed inside the 
           // game loop
-          this.#messageQueue.push(event.data)
+          this.#messageQueue.push(message);
         }
       } catch (err) {
         // TODO: Display error messages
@@ -220,6 +107,7 @@ class Controller {
 
   constructor(client) {
     this.#client = client;
+    this.#isReady = false;
     this.#input = {
       a: null,
       b: null,
@@ -227,26 +115,62 @@ class Controller {
       fire: false
     }
 
-    document.body.innerHTML = `<div id="move" class="split">
-                                <div class="centered"><s>Move your finger freely!</s> Not implemented Yet!!</div>
+    document.body.innerHTML = ` <div class="top">
+                                  <h1>Controller</h1>
+                                  <p id="msg">⚠️ Before you can play, you have to press on the bottom below, so we can access your device motion.</p>
                                 </div>
-                                <div id="fire" class="split">
-                                <div class="centered">Press to Fire!</div>
-                                </div>`
-                                
+                                <span class="centered" id="fire" style='opacity: 0'>Press anywhere on the page to fire the ball!</span>
+                              ` 
     document.body.innerHTML += `<button id="ready" class="centered">Ready?</button>`
     const perm = document.getElementById('ready');
-    const fireButton = document.getElementById('fire');
-    // Handles motion and fire events.
+    const fire = document.getElementById('fire');
+    const msg = document.getElementById('msg');
     // TODO: If time: do acceleration and reverse.
     const self = this;
-    // Removed: touble tap zoom - not sure if it works properly tho.
-    fireButton.onclick = function() {self.#input.fire = true;};
-    perm.onclick = async function() { await self.handleMotion(); self.#isReady = true; };
+    perm.onclick = async function(e) {
+      e.stopImmediatePropagation(); 
+      try {
+        await self.handleMotion();
+        self.#initializeControls();
+      } catch(e) {
+        document.body.innerHTML += `<span class="centered" style='width: 20rem'>🚫 <b>${e.message}</b> </span>`;
+      } finally {
+        // Remove the button no matter what.
+        const readyUp = document.getElementById('ready');
+        readyUp.style.opacity = '0';
+        readyUp.style.zIndex = '-1';
+      }
+    };
     
     // Starts input reading - change the time interval if you
     // wish to send fewer times per second.
-    this.#interval = setInterval(() => this.#update(), 1000/30/30);
+    this.#interval = setInterval(() => this.#update(), 1000/30);
+  }
+  
+  async #initializeControls() {
+    // Adds motion events Listeners
+    window.addEventListener('deviceorientation', event => {
+      this.#input.a = event.alpha;
+      this.#input.b = event.beta;
+      this.#input.g = event.gamma;
+    });
+    // Adds Tank Fire Event
+    document.body.addEventListener('click', event => {
+      this.#input.fire = true;
+    });
+    // Starts processing input
+    this.#isReady = true; 
+    // Shows Fire Hint to the player
+    fire.style.opacity = 1;
+    // Removes the guidance message
+    msg.innerText = '';
+  }
+
+  #update() {
+    if(this.#isReady) {
+      this.#processMessages();
+      this.#sendInput();
+    }
   }
 
   #processMessages() {
@@ -265,7 +189,6 @@ class Controller {
     const ws = this.#client.getSocket();
     // Sends the input as Message.Tank.Input
     if(ws.readyState === ws.CLOSED) { return; }
-    console.log('test');
     ws.send(JSON.stringify({
       type: 'input',
       data: {
@@ -277,100 +200,125 @@ class Controller {
   }
 
   async handleMotion() {
-    try {
-      let granted = false;
-      if (typeof DeviceOrientationEvent === 'undefined') {
-        throw new Error('Device motion is either unacessible or does not exist!');
+    let granted = false;
+    if (typeof DeviceOrientationEvent === 'undefined') {
+      throw new Error('Device motion is either unacessible or does not exist!');
+    }
+
+    // Request Permission for Safari, Chrome And Firefox!
+    // Tested in Safari and Chrome (simulator)
+    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const permission = await DeviceOrientationEvent.requestPermission();
+        granted = permission === 'granted';
+      } catch(e) {
+        granted = undefined;
+      }
+
+      if(granted === undefined) {
+        throw new Error('Something went wrong when asking for permssion.');
       }
   
-      // Request Permission for Safari, Chrome And Firefox!
-      // Tested in Safari and Chrome (simulator)
-      if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-        try {
-          const permission = await DeviceOrientationEvent.requestPermission();
-          granted = permission === 'granted';
-        } catch(e) {
-          granted = undefined;
-        }
-  
-        if(granted === undefined) {
-          throw new Error('Something went wrong when asking for permssion.');
-        }
-    
-        if (!granted) {
-          throw new Error('Device Motion permission denied. Please refresh the page to be able to grant permission!');
-        }
-      }  
-
-      // Adds motion events
-      window.addEventListener('deviceorientation', event => {
-        this.#input.a = event.alpha;
-        this.#input.b = event.beta;
-        this.#input.g = event.gamma;
-      });
-
-    } catch(e) {
-      document.body.innerHTML += `<span class="centered">Error: ${e.message}</span>`;
-    } finally {
-      // Remove the button no matter what.
-      const readyUp = document.getElementById('ready');
-      readyUp.style.opacity = '0';
-    }
+      if (!granted) {
+        throw new Error('Device Motion permission denied. Please refresh the page or restart the browser :(');
+      }
+    }  
   }
 
-  #update() {
-    if(this.#isReady) {
-      this.#processMessages();
-      this.#sendInput();
-    }
-  }
 }
 
 class Display {
   #client;
   #state;
+  #engine;
+  #world;
   #render;
+  #runner;
+  #tanks
 
   constructor(client) {
-    this.#client = client;
     document.body.innerHTML = '';
-    const canvas = document.createElement('canvas');
-    document.body.appendChild(canvas);
-    this.#render = new Render(canvas);
-    requestAnimationFrame(() => this.#update());
+
+    this.#client = client;
+    this.#tanks = {};
+    this.#engine = Matter.Engine.create({
+      gravity: {
+        scale: 0,
+        x: 0,
+        y: 0
+      }
+    });
+    this.#world = this.#engine.world;
+    this.#render = Matter.Render.create({
+      element: document.body,
+      engine: this.#engine,
+      options: {
+        width: 800,
+        height: 600,
+        pixelRatio: devicePixelRatio,
+      }
+    });
+    // Adds the boundary walls
+    this.#addWalls();
+    // Before drawing, first process all the messages
+    Matter.Render.run(this.#render);
+    
+    const runner = Matter.Runner.create();
+    Matter.Runner.start(runner, this.#engine);
+    
+    Matter.Events.on(runner, 'beforeUpdate', () => {
+      this.#processMessages();
+    });
+    
+    // Runs the engine per requestAnimationFrame. The
+    // processing of messages is done above through 
+    // events!
+
+  }
+
+  #addWalls() {
+    const style = { isStatic: true };
+    Matter.Composite.add(this.#world, [
+      Matter.Bodies.rectangle(400, 0, 800, 50, style),
+      Matter.Bodies.rectangle(400, 600, 800, 50, style),
+      Matter.Bodies.rectangle(800, 300, 50, 600, style),
+      Matter.Bodies.rectangle(0, 300, 50, 600, style)  
+    ])
+  }
+
+  #addTank({clientID, position, angle}) {
+    const tank = Matter.Bodies.rectangle(400, 400, 25, 25, {isStatic: true});
+    Matter.Body.rotate(tank, angle);
+    this.#tanks[clientID] = tank;
+    Matter.Composite.add(this.#world, tank);
+  }
+
+  #updateTank({clientID, position, angle}) {
+    const tank = this.#tanks[clientID];
+    Matter.Body.rotate(tank, angle);
   }
 
   #processMessages() {
-    this.#client.getMessages().forEach(msg => {
+    this.#client.getMessages().forEach(messages => {
+      messages.forEach(msg => {
+        switch(msg.type) {
+          case 'mov':
+            if(!this.#tanks[msg.data.clientID]) {
+              this.#addTank(msg.data);
+            } else {
+              this.#updateTank(msg.data);
+            }
+            break;
+          case 'ball':
+            break;
+          
+        }
+      });
     });
-
+    
     this.#client.clearMessages();
   }
 
-  #update() {
-    this.#processMessages();
-    this.#render.draw(this.#state);
-    requestAnimationFrame(() => this.#update());
-  }
-}
-
-class Tank {
-  getMesh() {
-    return [
-      // Body
-      [[0, 0],
-      [0.5, 0],
-
-      [0.5, 0.50],
-      [1.5, 0.50],
-      [1.5, 0],
-      [2, 0],
-      [2, 3.25],
-      [0, 3.25]],
-      // Turret
-      []
-    ]
-  }
 }
 
   // UI -> Waiting for connection

@@ -1,6 +1,6 @@
 import * as Matter from 'matter-js';
 import type { Vector2, TankInput, Message } from './types';
-
+import { nanoid } from 'nanoid';
 
 const EngineOptions = {
   gravity: {
@@ -8,10 +8,6 @@ const EngineOptions = {
     x: 0,
     y: 0,
   }
-}
-
-const Walls = {
-  0: []
 }
 
 /**
@@ -37,17 +33,33 @@ export class Engine {
 
   private handleCollision() {
     Matter.Events.on(this.engine, 'collisionStart', (event) => {
+      let toRemoveTank = undefined;
+      let toRemoveBall = undefined;
+
       for (const pair of event.pairs) {
         if(!pair.activeContacts) continue;
         if(pair.bodyA.label === 'ball' && pair.bodyB.label === 'tank' ||
            pair.bodyA.label === 'tank' && pair.bodyB.label === 'tank') {
             console.log('test');
-          // TODO: Remove from composite
           for(const clientID in this.tanks){
             const tank = this.tanks[clientID];
-          }
+            if(tank.body === pair.bodyA || tank.body === pair.bodyB) {
+              toRemoveTank = tank.body;
+            }
+            tank.balls.forEach(ball => {
+              if(ball === pair.bodyA || ball === pair.bodyB) {
+                toRemoveBall = ball;
+              }
+            });
+            }
         }
       }
+      // Removes Tank/Ball from the game
+      if(toRemoveBall && toRemoveTank) {
+        Matter.Composite.remove(this.world, toRemoveBall);
+        Matter.Composite.remove(this.world, toRemoveTank);
+      }
+
     })
   }
 
@@ -57,9 +69,14 @@ export class Engine {
   
   loadStaticWalls() {
     // Single Map
-    for (const wall of Walls[0]) {
-      Matter.Composite.add(this.world, wall);
-    }
+    const style = { isStatic: true };
+    Matter.Composite.add(this.world, [
+      Matter.Bodies.rectangle(400, 0, 800, 50, style),
+      Matter.Bodies.rectangle(400, 600, 800, 50, style),
+      Matter.Bodies.rectangle(800, 300, 50, 600, style),
+      Matter.Bodies.rectangle(0, 300, 50, 600, style)  
+    ])
+    
   }
 
   addTank(clientID: string) {
@@ -114,15 +131,19 @@ class Tank {
       this.balls.push(ball);
       Matter.Composite.add(world, ball);     
     }
+    let angle = null;
     // Beta Orientation - Tested in chrome
-    if((this.lastInput.b > 0 && this.newInput.b < 0) || (Math.abs(this.lastInput.b) < Math.abs(this.newInput.b))) {
+    if((this.lastInput.g > 0 && this.newInput.g < 0) || (Math.abs(this.lastInput.g) < Math.abs(this.newInput.g))) {
       // Rotate Left
-      Matter.Body.rotate(this.body, (this.newInput.b - this.lastInput.b)* (Math.PI/180));
-    } else if(this.lastInput.b < 0 && this.newInput.b > 0 || (Math.abs(this.lastInput.b) > Math.abs(this.newInput.b))) {
+      angle = (this.newInput.g - this.lastInput.g)* (Math.PI/180);
+    } else if(this.lastInput.g < 0 && this.newInput.g > 0 || (Math.abs(this.lastInput.g) > Math.abs(this.newInput.g))) {
       // Rotate Right
-      Matter.Body.rotate(this.body, (this.newInput.b - this.lastInput.b)*(Math.PI/180));
+      angle = ((this.newInput.g - this.lastInput.g)*(Math.PI/180));
     }
 
+    if(angle) {
+      Matter.Body.rotate(this.body, Number((angle / 5)));
+    }
     this.lastInput = this.newInput;
 
   }
