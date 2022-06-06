@@ -20,11 +20,13 @@ export class Engine {
   
   engine: Matter.Engine;
   tanks: {[key:string] : Tank};
+  balls: {[key:string] : Matter.Body};
   world: Matter.World;
 
   constructor() {
     this.engine = Matter.Engine.create(EngineOptions);
     this.tanks = {};
+    this.balls = {};
     this.world = this.engine.world;
     this.loadStaticWalls();
     this.handleCollision();
@@ -41,17 +43,20 @@ export class Engine {
         if(pair.bodyA.label === 'ball' && pair.bodyB.label === 'tank' ||
            pair.bodyA.label === 'tank' && pair.bodyB.label === 'tank') {
             console.log('test');
+          // Finds the Tank
           for(const clientID in this.tanks){
             const tank = this.tanks[clientID];
             if(tank.body === pair.bodyA || tank.body === pair.bodyB) {
               toRemoveTank = tank.body;
             }
-            tank.balls.forEach(ball => {
-              if(ball === pair.bodyA || ball === pair.bodyB) {
-                toRemoveBall = ball;
-              }
-            });
+          }
+          // Finds the Ball
+          for(const ballID in this.balls) {
+            const ball = this.balls[ballID];
+            if(ball === pair.bodyA || ball === pair.bodyB) {
+              toRemoveBall = ball;
             }
+          }
         }
       }
       // Removes Tank/Ball from the game
@@ -65,6 +70,10 @@ export class Engine {
 
   getTanks() {
     return this.tanks;
+  }
+
+  getBalls() {
+    return this.balls;
   }
   
   loadStaticWalls() {
@@ -94,7 +103,7 @@ export class Engine {
   update() {
     for(const tankID in this.tanks) {
       const tank = this.tanks[tankID];
-      tank.processInput(this.world);
+      tank.processInput(this.world, this);
     }
     Matter.Engine.update(this.engine, 33.333);
   }
@@ -106,7 +115,6 @@ class Tank {
     //TODO: Turret 
   ]
   body: Matter.Body;
-  balls: Matter.Body[];
   private newInput: TankInput;
   private lastInput: TankInput;
 
@@ -115,7 +123,6 @@ class Tank {
       parts: Tank.parts,
       label: 'tank',
     });
-    this.balls = [];
     this.newInput = { a: 0, b: 0, g: 0, fire: false };
     this.lastInput = { a:0, b:0, g:0, fire: false };
     Matter.Body.setPosition(this.body, position);
@@ -125,12 +132,13 @@ class Tank {
     this.newInput = input;
   }
 
-  processInput(world: Matter.World) {
+  processInput(world: Matter.World, engine: Engine) {
     if(this.newInput.fire) {
       const ball = Matter.Bodies.circle(300,300, 5, {label: 'ball'});
-      this.balls.push(ball);
+      engine.balls[nanoid()] = ball;
       Matter.Composite.add(world, ball);     
     }
+
     let angle = null;
     // Beta Orientation - Tested in chrome
     if((this.lastInput.g > 0 && this.newInput.g < 0) || (Math.abs(this.lastInput.g) < Math.abs(this.newInput.g))) {

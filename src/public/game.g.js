@@ -234,13 +234,13 @@ class Display {
   #world;
   #render;
   #runner;
-  #tanks
+  #bodies
 
   constructor(client) {
     document.body.innerHTML = '';
 
     this.#client = client;
-    this.#tanks = {};
+    this.#bodies = {};
     this.#engine = Matter.Engine.create({
       gravity: {
         scale: 0,
@@ -289,13 +289,25 @@ class Display {
   #addTank({clientID, position, angle}) {
     const tank = Matter.Bodies.rectangle(400, 400, 25, 25, {isStatic: true});
     Matter.Body.rotate(tank, angle);
-    this.#tanks[clientID] = tank;
     Matter.Composite.add(this.#world, tank);
+    this.#bodies[clientID] = tank;
   }
 
   #updateTank({clientID, position, angle}) {
-    const tank = this.#tanks[clientID];
+    const tank = this.#bodies[clientID]
     Matter.Body.rotate(tank, angle);
+    //Matter.Body.setPosition(tank, position);
+  }
+
+  #addBall({ballID, position}) {
+    const ball = Matter.Bodies.circle(350, 350, 5, {isStatic: true});
+    Matter.Composite.add(this.#world, ball);
+    this.#bodies[ballID] = ball;
+  }
+
+  #updateBall({ballID, position}) {
+    const body = this.#bodies[ballID];
+    Matter.Body.setPosition(body, position);
   }
 
   #processMessages() {
@@ -303,13 +315,19 @@ class Display {
       messages.forEach(msg => {
         switch(msg.type) {
           case 'mov':
-            if(!this.#tanks[msg.data.clientID]) {
+            if(!this.#bodies[msg.data.clientID]) {
               this.#addTank(msg.data);
             } else {
               this.#updateTank(msg.data);
             }
             break;
           case 'ball':
+            console.log('received ball');
+            if(!this.#bodies[msg.data.ballID]) {
+              this.#addBall(msg.data);
+            } else {
+              this.#updateBall(msg.data);
+            }
             break;
           
         }

@@ -81,6 +81,7 @@ export namespace Message {
     export interface Ball {
       type: 'ball';
       data: {
+        ballID: string,
         position: Vector2
       }
     }

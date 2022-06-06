@@ -57,22 +57,14 @@ export class LANServer implements Game.Network {
 
   sendState() {
     // Sends Tank Position and Azimuth to the display.
-    let outMessages = [];    
+    let outMessages: Message.Outgoing[] = [];    
     if(this.display) {
       const ws = this.display.ws;
       const tanks = this.game.getTanks();
+      const balls = this.game.getBalls();
+      // Pushes tank instance
       for(const tankID in tanks) {
         const tank = tanks[tankID];
-        // Pushes all the ball instances
-        tank.balls.forEach(ball => {
-          outMessages.push({
-            type: 'ball',
-            data: {
-              position: (ball.position as Vector2),
-            }
-          });
-        });
-        // Pushes tank instance
         outMessages.push({
           type: 'mov',
           data: {
@@ -80,8 +72,22 @@ export class LANServer implements Game.Network {
             position: tank.body.position,
             angle: tank.body.angle,  
           }
-        });
+        } as Message.Tank.Movement);
       }
+      // Pushes all ball instances
+      for(const ballID in balls) {
+        const ball = balls[ballID];
+        outMessages.push({
+          type: 'ball',
+          data: {
+            ballID: ballID,
+            position: ball.position as Vector2
+          }
+        } as Message.Tank.Ball);
+        console.log('Added Ball');
+        
+      }
+    
       if(outMessages.length > 0) {
         ws.send(JSON.stringify(outMessages));
       }
@@ -153,7 +159,7 @@ export class LANServer implements Game.Network {
             this.messageBuffer.push(message);
         }
       } catch(err) {
-          console.log(err)
+        console.log(err)
         webSocket.send(JSON.stringify({ error: 'Something went wrong!'}));
       }
     }
