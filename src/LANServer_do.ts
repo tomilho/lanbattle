@@ -64,7 +64,7 @@ export class LANServer implements Game.Network {
       const balls = this.game.getBalls();
       // Pushes tank instance
       for(const tankID in tanks) {
-        const tank = tanks[tankID];
+        const tank = tanks[tankID];        
         outMessages.push({
           type: 'mov',
           data: {
@@ -139,7 +139,7 @@ export class LANServer implements Game.Network {
               actor = Render.DISPLAY;
               this.display = { ws: webSocket, id: clientID };
             } else {
-              actor = Render.CONTROLLER;
+              actor = Render.CONTROLLER;              
               this.game.addTank(clientID);
             }
             // Sends welcome information

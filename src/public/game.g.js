@@ -291,16 +291,15 @@ class Display {
 //'#76f09b'
 //'#ececd1'
 //'#f55f5f'
-  #addTank({clientID, shape, position, angle}) {
-    position = {x: 400, y: 400}
-  
+  #addTank({tankID, shape, position, angle}) {
     const turret = Matter.Body.create({
       parts: [Matter.Bodies.circle(position.x, position.y, this.#bodySize/3), // Turret p1
               Matter.Bodies.rectangle(position.x,position.y - this.#bodySize/2, this.#bodySize/3, this.#bodySize/1.75)], // Turret p2
-      
-    })
+    });
+    const tankS = this.#getTankShape(shape, position);
+    console.log(tankS);
     const tank = Matter.Body.create({
-      parts: [this.#getTankShape(shape, position), turret],
+      parts: [tankS, turret],
       label: 'tank',
       render: { lineWidth: 1},
       isStatic: true,
@@ -308,7 +307,7 @@ class Display {
     });
     Matter.Body.rotate(tank, angle);
     Matter.Composite.add(this.#world, tank);
-    this.#bodies[clientID] = tank;
+    this.#bodies[tankID] = tank;
   }
 
   #getTankShape(shape, position) {
@@ -326,10 +325,10 @@ class Display {
     return Matter.Bodies.rectangle(position.x, position.y, this.#bodySize, this.#bodySize);
   }
 
-  #updateTank({clientID, shape, position, angle}) {
-    const tank = this.#bodies[clientID]
+  #updateTank({tankID, shape, position, angle}) {
+    const tank = this.#bodies[tankID]
     Matter.Body.rotate(tank, angle);
-    //Matter.Body.setPosition(tank, position);
+    Matter.Body.setPosition(tank, position);
   }
 
   #addBall({ballID, position}) {
@@ -348,7 +347,8 @@ class Display {
       messages.forEach(msg => {
         switch(msg.type) {
           case 'mov':
-            if(!this.#bodies[msg.data.clientID]) {
+            console.log(msg.data.tankID);
+            if(!this.#bodies[msg.data.tankID]) {
               this.#addTank(msg.data);
             } else {
               this.#updateTank(msg.data);
@@ -361,7 +361,6 @@ class Display {
               this.#updateBall(msg.data);
             }
             break;
-          
         }
       });
     });

@@ -45,7 +45,6 @@ export class Engine {
         if(!pair.activeContacts) continue;
         if(pair.bodyA.label === 'ball' && pair.bodyB.label === 'tank' ||
            pair.bodyA.label === 'tank' && pair.bodyB.label === 'tank') {
-            console.log('test');
           // Finds the Tank
           for(const clientID in this.tanks){
             const tank = this.tanks[clientID];
@@ -68,7 +67,7 @@ export class Engine {
         Matter.Composite.remove(this.world, toRemoveTank);
       }
 
-    })
+    });
   }
 
   getTanks() {
@@ -92,7 +91,7 @@ export class Engine {
   }
 
   addTank(clientID: string) {
-    const tank = new Tank({ x: 0, y: 0 }, Object.keys(this.tanks).length);
+    const tank = new Tank({ x: Math.random()*700+50, y: Math.random()*500+50}, Object.keys(this.tanks).length);
     this.tanks[clientID] = tank;
     Matter.Composite.add(this.world, tank.body);
   }
@@ -173,7 +172,7 @@ class Tank {
     }
 
     let angle = null;
-    // Beta Orientation - Tested in chrome
+    // Beta Orientation - Tested in chrome and safari
     if((this.lastInput.g > 0 && this.newInput.g < 0) || (Math.abs(this.lastInput.g) < Math.abs(this.newInput.g))) {
       // Rotate Left
       angle = (this.newInput.g - this.lastInput.g)* (Math.PI/180);
