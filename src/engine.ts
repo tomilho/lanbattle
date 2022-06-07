@@ -121,6 +121,7 @@ class Tank {
   private bodySize = 35;
   body: Matter.Body;
   shape: string;
+  angle: number;
   private newInput: TankInput;
   private lastInput: TankInput;
 
@@ -132,8 +133,10 @@ class Tank {
               Matter.Bodies.circle(position.x, position.y, this.bodySize/3), // Turret p1
               Matter.Bodies.rectangle(position.x,position.y - this.bodySize/2, this.bodySize/3, this.bodySize/1.75)], // Turret p2
       label: 'tank',
-      render: { lineWidth: 1}
+      render: { lineWidth: 1},
     });
+    this.angle = 0;
+    Matter.Body.setAngle(this.body, 0);
     this.newInput = { a: 0, b: 0, g: 0, fire: false };
     this.lastInput = { a:0, b:0, g:0, fire: false };
   }
@@ -144,11 +147,11 @@ class Tank {
         this.shape = 'square';
         return Matter.Bodies.rectangle(position.x, position.y, this.bodySize, this.bodySize);
       case 1:
-        this.shape = 'triangle';
-        return Matter.Bodies.polygon(position.x, position.y, 3, this.bodySize);
+        this.shape = 'pentagon';
+        return Matter.Bodies.polygon(position.x, position.y, 5, this.bodySize/1.5);
       case 2:
-        this.shape = 'hexagon';
-        return Matter.Bodies.polygon(position.x, position.y, 6, this.bodySize);
+        this.shape = 'decagon';
+        return Matter.Bodies.polygon(position.x, position.y, 10, this.bodySize/1.5);
       case 3:
         this.shape = 'circle';
         return Matter.Bodies.circle(position.x, position.y, this.bodySize/2);
@@ -163,32 +166,26 @@ class Tank {
 
   processInput(world: Matter.World, engine: Engine) {
     if(this.newInput.fire) {
-      const ball = Matter.Bodies.circle(350,350, 6, {
+      const ball = Matter.Bodies.circle(this.body.position.x, this.body.position.y - 35, 5, {
         label: 'ball', 
         restitution: 1,
         friction: 0,
         frictionAir: 0,
         frictionStatic: 0,
       });
-      Matter.Body.setVelocity(ball, {x: 10, y: 10});
-      Matter.Composite.add(world, ball);
-
+      // Matter.js/types is not up-to-date
+      (Matter.Body as any).rotate(ball, this.body.angle, this.body.position);
+      const velocity = Matter.Vector.sub(ball.position, this.body.position);
+      const unitVelocity = Matter.Vector.div(velocity, Matter.Vector.magnitude(velocity)); 
+      Matter.Body.setVelocity(ball, Matter.Vector.mult(unitVelocity, 10));
+      Matter.Composite.add(world, ball);      
+            
       engine.balls[nanoid()] = ball;
     }
 
-    let angle = null;
-    // Beta Orientation - Tested in chrome and safari
-    if((this.lastInput.g > 0 && this.newInput.g < 0) || (Math.abs(this.lastInput.g) < Math.abs(this.newInput.g))) {
-      // Rotate Left
-      angle = (this.newInput.g - this.lastInput.g)* (Math.PI/180);
-    } else if(this.lastInput.g < 0 && this.newInput.g > 0 || (Math.abs(this.lastInput.g) > Math.abs(this.newInput.g))) {
-      // Rotate Right
-      angle = ((this.newInput.g - this.lastInput.g)*(Math.PI/180));
-    }
-
-    if(angle) {
-      Matter.Body.rotate(this.body, Number((angle / 5)));
-    }
+    let angle = ((this.newInput.g - this.lastInput.g)*(Math.PI/180));
+    Matter.Body.rotate(this.body, angle);
+    
     this.lastInput = this.newInput;
 
   }

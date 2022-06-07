@@ -300,10 +300,7 @@ class Display {
       Matter.Bodies.rectangle(0, 300, 50, 600, style)  
     ])
   }
-//'#f5b862'
-//'#76f09b'
-//'#ececd1'
-//'#f55f5f'
+
   #addTank({tankID, shape, position, angle}) {
     const turret = Matter.Body.create({
       parts: [Matter.Bodies.circle(position.x, position.y, this.#bodySize/3), // Turret p1
@@ -318,7 +315,7 @@ class Display {
       isStatic: true,
       isSensor: true,
     });
-    Matter.Body.rotate(tank, angle);
+    Matter.Body.setAngle(tank, angle);
     Matter.Composite.add(this.#world, tank);
     this.#bodies[tankID] = tank;
   }
@@ -327,12 +324,12 @@ class Display {
     switch(shape) {
       case 'square':;
         return Matter.Bodies.rectangle(position.x, position.y, this.#bodySize, this.#bodySize);
-      case 'triangle':
-        return Matter.Bodies.polygon(position.x, position.y, 3, this.#bodySize);
-      case 'hexagon':
-        return Matter.Bodies.polygon(position.x, position.y, 6, this.#bodySize);
+      case 'pentagon':
+        return Matter.Bodies.polygon(position.x, position.y, 5, this.#bodySize/1.5, {render: {fillStyle: '#f55f5f'}});
+      case 'decagon':
+        return Matter.Bodies.polygon(position.x, position.y, 10, this.#bodySize/1.5, {render: {fillStyle: '#12a13d'}});
       case 'circle':
-        return Matter.Bodies.circle(position.x, position.y, this.#bodySize/2);
+        return Matter.Bodies.circle(position.x, position.y, this.#bodySize/2, {render: {fillStyle: '#ececd1'}});
     }
     
     return Matter.Bodies.rectangle(position.x, position.y, this.#bodySize, this.#bodySize);
@@ -340,12 +337,12 @@ class Display {
 
   #updateTank({tankID, shape, position, angle}) {
     const tank = this.#bodies[tankID]
-    Matter.Body.rotate(tank, angle);
+    Matter.Body.setAngle(tank, angle);
     Matter.Body.setPosition(tank, position);
   }
 
   #addBall({ballID, position}) {
-    const ball = Matter.Bodies.circle(350, 350, 5, {isStatic: true, isSensor: true});
+    const ball = Matter.Bodies.circle(position.x, position.y, 5, {isStatic: true, isSensor: true});
     Matter.Composite.add(this.#world, ball);
     this.#bodies[ballID] = ball;
   }
