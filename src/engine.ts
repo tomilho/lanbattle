@@ -92,7 +92,7 @@ export class Engine {
   }
 
   addTank(clientID: string) {
-    const tank = new Tank({ x: 0, y: 0 });
+    const tank = new Tank({ x: 0, y: 0 }, Object.keys(this.tanks).length);
     this.tanks[clientID] = tank;
     Matter.Composite.add(this.world, tank.body);
   }
@@ -114,22 +114,43 @@ export class Engine {
 }
 
 class Tank {
-  private static parts = [
-    Matter.Bodies.rectangle(0, 0, 100, 100),
-    //TODO: Turret 
-  ]
+  private bodySize = 35;
   body: Matter.Body;
+  shape: string;
   private newInput: TankInput;
   private lastInput: TankInput;
 
-  constructor(position: Vector2) {
+  constructor(position: Vector2, playerCount: number) {
+    this.shape = '';
+    const shape = this.getTankShape(position, playerCount);
     this.body = Matter.Body.create({
-      parts: Tank.parts,
+      parts: [shape, // Unique Shape 
+              Matter.Bodies.circle(position.x, position.y, this.bodySize/3), // Turret p1
+              Matter.Bodies.rectangle(position.x,position.y - this.bodySize/2, this.bodySize/3, this.bodySize/1.75)], // Turret p2
       label: 'tank',
+      render: { lineWidth: 1}
     });
     this.newInput = { a: 0, b: 0, g: 0, fire: false };
     this.lastInput = { a:0, b:0, g:0, fire: false };
-    Matter.Body.setPosition(this.body, position);
+  }
+
+  getTankShape(position: Vector2, playerCount: number): Matter.Body {
+    switch(playerCount) {
+      case 0:
+        this.shape = 'square';
+        return Matter.Bodies.rectangle(position.x, position.y, this.bodySize, this.bodySize);
+      case 1:
+        this.shape = 'triangle';
+        return Matter.Bodies.polygon(position.x, position.y, 3, this.bodySize);
+      case 2:
+        this.shape = 'hexagon';
+        return Matter.Bodies.polygon(position.x, position.y, 6, this.bodySize);
+      case 3:
+        this.shape = 'circle';
+        return Matter.Bodies.circle(position.x, position.y, this.bodySize/2);
+    }
+    
+    return Matter.Bodies.rectangle(position.x, position.y, this.bodySize, this.bodySize);
   }
 
   setInput(input: TankInput) {

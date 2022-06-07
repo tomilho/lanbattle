@@ -66,6 +66,7 @@ export namespace Message {
       type: 'mov';
       data: {
         tankID: string,
+        shape: string, // Not Ideal
         position: Vector2,
         angle: number
       }

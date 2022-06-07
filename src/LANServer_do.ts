@@ -69,6 +69,7 @@ export class LANServer implements Game.Network {
           type: 'mov',
           data: {
             tankID: tankID,
+            shape: tank.shape,
             position: tank.body.position,
             angle: tank.body.angle,  
           }

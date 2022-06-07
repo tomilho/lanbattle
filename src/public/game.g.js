@@ -235,12 +235,17 @@ class Display {
   #render;
   #runner;
   #bodies
-
+  #bodySize;
   constructor(client) {
     document.body.innerHTML = '';
-
+    this.#bodySize = 32;
     this.#client = client;
     this.#bodies = {};
+    // Although, there is also an engine here this is needed to 
+    // draw the bodies. So to make sure there isn't any kind 
+    // of collision resolution, all bodies are set to be a sensor 
+    // which makes the body to not react on collision!
+    // https://brm.io/matter-js/docs/classes/Body.html#property_isSensor
     this.#engine = Matter.Engine.create({
       gravity: {
         scale: 0,
@@ -271,14 +276,10 @@ class Display {
       this.#processMessages();
     });
     
-    // Runs the engine per requestAnimationFrame. The
-    // processing of messages is done above through 
-    // events!
-
   }
 
   #addWalls() {
-    const style = { isStatic: true };
+    const style = { isStatic: true, isSensor: true };
     Matter.Composite.add(this.#world, [
       Matter.Bodies.rectangle(400, 0, 800, 50, style),
       Matter.Bodies.rectangle(400, 600, 800, 50, style),
@@ -286,28 +287,58 @@ class Display {
       Matter.Bodies.rectangle(0, 300, 50, 600, style)  
     ])
   }
-
-  #addTank({clientID, position, angle}) {
-    const tank = Matter.Bodies.rectangle(400, 400, 25, 25, {isStatic: true});
+//'#f5b862'
+//'#76f09b'
+//'#ececd1'
+//'#f55f5f'
+  #addTank({clientID, shape, position, angle}) {
+    position = {x: 400, y: 400}
+  
+    const turret = Matter.Body.create({
+      parts: [Matter.Bodies.circle(position.x, position.y, this.#bodySize/3), // Turret p1
+              Matter.Bodies.rectangle(position.x,position.y - this.#bodySize/2, this.#bodySize/3, this.#bodySize/1.75)], // Turret p2
+      
+    })
+    const tank = Matter.Body.create({
+      parts: [this.#getTankShape(shape, position), turret],
+      label: 'tank',
+      render: { lineWidth: 1},
+      isStatic: true,
+      isSensor: true,
+    });
     Matter.Body.rotate(tank, angle);
     Matter.Composite.add(this.#world, tank);
     this.#bodies[clientID] = tank;
   }
 
-  #updateTank({clientID, position, angle}) {
+  #getTankShape(shape, position) {
+    switch(shape) {
+      case 'square':;
+        return Matter.Bodies.rectangle(position.x, position.y, this.#bodySize, this.#bodySize);
+      case 'triangle':
+        return Matter.Bodies.polygon(position.x, position.y, 3, this.#bodySize);
+      case 'hexagon':
+        return Matter.Bodies.polygon(position.x, position.y, 6, this.#bodySize);
+      case 'circle':
+        return Matter.Bodies.circle(position.x, position.y, this.#bodySize/2);
+    }
+    
+    return Matter.Bodies.rectangle(position.x, position.y, this.#bodySize, this.#bodySize);
+  }
+
+  #updateTank({clientID, shape, position, angle}) {
     const tank = this.#bodies[clientID]
     Matter.Body.rotate(tank, angle);
     //Matter.Body.setPosition(tank, position);
   }
 
   #addBall({ballID, position}) {
-    const ball = Matter.Bodies.circle(350, 350, 5, {isStatic: true});
+    const ball = Matter.Bodies.circle(350, 350, 5, {isStatic: true, isSensor: true});
     Matter.Composite.add(this.#world, ball);
     this.#bodies[ballID] = ball;
   }
 
   #updateBall({ballID, position}) {
-    console.log(position);
     const body = this.#bodies[ballID];
     Matter.Body.setPosition(body, position);
   }
@@ -324,7 +355,6 @@ class Display {
             }
             break;
           case 'ball':
-            console.log('received ball');
             if(!this.#bodies[msg.data.ballID]) {
               this.#addBall(msg.data);
             } else {
