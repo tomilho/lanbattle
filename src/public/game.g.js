@@ -322,7 +322,7 @@ class Display {
   #getTankShape(shape, position) {
     switch(shape) {
       case 'square':;
-        return Matter.Bodies.rectangle(position.x, position.y, this.#bodySize, this.#bodySize);
+        return Matter.Bodies.rectangle(position.x, position.y, this.#bodySize, this.#bodySize, {render: {fillStyle: '#063e7b'}});
       case 'pentagon':
         return Matter.Bodies.polygon(position.x, position.y, 5, this.#bodySize/1.5, {render: {fillStyle: '#f55f5f'}});
       case 'decagon':
@@ -356,7 +356,6 @@ class Display {
   }
 
   #processMessages() {
-    const bodiesToDestroy = [];
     this.#client.getMessages().forEach(messages => {
       messages.forEach(msg => {
         switch(msg.type) {
@@ -374,6 +373,12 @@ class Display {
               this.#updateBall(msg.data);
             }
             break;
+          case 'rm':
+            const body = this.#bodies[msg.data.bodyID]; 
+            if(body) {
+              Matter.Composite.remove(this.#world, body);
+              delete this.#bodies[msg.data.bodyID];
+            }
         }
       });
     });

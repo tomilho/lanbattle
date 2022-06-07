@@ -30,6 +30,7 @@ export namespace Message {
   | Message.Welcome
   | Message.Error
   | Message.Tank.Movement
+  | Message.BodyRemove
   | Message.Tank.Ball;
 
   export interface Init {
@@ -61,7 +62,15 @@ export namespace Message {
     };
   }
 
+  export interface BodyRemove {
+    type: 'rm';
+    data: {
+      bodyID: string
+    }
+  }
+
   export namespace Tank {    
+
     export interface Movement {
       type: 'mov';
       data: {

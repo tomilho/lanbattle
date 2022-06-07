@@ -69,6 +69,8 @@ export class Engine {
         delete this.balls[toRemoveBall];
         Matter.Composite.remove(this.world, this.tanks[toRemoveTank].body);
         delete this.tanks[toRemoveTank];
+        // Replace the tank with another ->
+        this.addTank(toRemoveTank);
       }
 
     });
@@ -79,7 +81,7 @@ export class Engine {
     this.tanks = {};
     Matter.Composite.clear(this.world, true);
   }
-    
+
   getTanks() {
     return this.tanks;
   }

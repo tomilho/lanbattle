@@ -25,6 +25,7 @@ export class LANServer implements Game.Network {
   partyCode: string;
   messageBuffer: Message.Incoming[];
   game: Engine;
+  oldState: string[];
 
   constructor(controller: Controller, env: Enviroment) {
     this.storage = controller.storage;
@@ -34,6 +35,7 @@ export class LANServer implements Game.Network {
     this.messageBuffer = [];
     this.clients = [];
     this.partyCode = '';
+    this.oldState = [];
     // Starts the main game loop.
     this.interval = setInterval(() => this.mainLoop(), 33.333);
   }
@@ -61,6 +63,7 @@ export class LANServer implements Game.Network {
   }
 
   sendState() {
+    let newState: string[] = [];
     // Sends Tank Position and Azimuth to the display.
     let outMessages: Message.Outgoing[] = [];    
     if(this.display) {
@@ -69,7 +72,8 @@ export class LANServer implements Game.Network {
       const balls = this.game.getBalls();
       // Pushes tank instance
       for(const tankID in tanks) {
-        const tank = tanks[tankID];        
+        newState.push(tankID);
+        const tank = tanks[tankID];  
         outMessages.push({
           type: 'mov',
           data: {
@@ -82,6 +86,7 @@ export class LANServer implements Game.Network {
       }
       // Pushes all ball instances
       for(const ballID in balls) {
+        newState.push(ballID);
         const ball = balls[ballID];
         outMessages.push({
           type: 'ball',
@@ -92,7 +97,19 @@ export class LANServer implements Game.Network {
         } as Message.Tank.Ball);
         
       }
-    
+
+      this.oldState.forEach(oldId => {
+        if(!newState.find(newId => newId === oldId)) {
+          outMessages.push({
+            type: 'rm',
+            data: {
+              bodyID: oldId,
+            }
+          } as Message.Outgoing);
+        }
+      });
+
+      this.oldState = newState;
       if(outMessages.length > 0 && this.display.ws.readyState === WebSocket.READY_STATE_OPEN) {
         ws.send(JSON.stringify(outMessages));
       }
