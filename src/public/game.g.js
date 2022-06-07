@@ -307,7 +307,6 @@ class Display {
               Matter.Bodies.rectangle(position.x,position.y - this.#bodySize/2, this.#bodySize/3, this.#bodySize/1.75)], // Turret p2
     });
     const tankS = this.#getTankShape(shape, position);
-    console.log(tankS);
     const tank = Matter.Body.create({
       parts: [tankS, turret],
       label: 'tank',
@@ -342,7 +341,11 @@ class Display {
   }
 
   #addBall({ballID, position}) {
-    const ball = Matter.Bodies.circle(position.x, position.y, 5, {isStatic: true, isSensor: true});
+    const ball = Matter.Bodies.circle(position.x, position.y, 5, {
+      isStatic: true, 
+      isSensor: true,
+      render: {fillStyle: 'red'}
+    });
     Matter.Composite.add(this.#world, ball);
     this.#bodies[ballID] = ball;
   }
@@ -353,6 +356,7 @@ class Display {
   }
 
   #processMessages() {
+    const bodiesToDestroy = [];
     this.#client.getMessages().forEach(messages => {
       messages.forEach(msg => {
         switch(msg.type) {

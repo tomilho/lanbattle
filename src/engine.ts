@@ -43,28 +43,32 @@ export class Engine {
 
       for (const pair of event.pairs) {
         if(!pair.activeContacts) continue;
+        
         if(pair.bodyA.label === 'ball' && pair.bodyB.label === 'tank' ||
-           pair.bodyA.label === 'tank' && pair.bodyB.label === 'tank') {
-          // Finds the Tank
-          for(const clientID in this.tanks){
-            const tank = this.tanks[clientID];
-            if(tank.body === pair.bodyA || tank.body === pair.bodyB) {
-              toRemoveTank = tank.body;
+           pair.bodyA.label === 'tank' && pair.bodyB.label === 'ball') {
+          // Finds the Tank          
+          for(const clientID in this.tanks) {
+            const tank = this.tanks[clientID]; 
+            if(tank.body === pair.bodyA.parent || tank.body === pair.bodyB.parent) {              
+              toRemoveTank = clientID;
             }
           }
           // Finds the Ball
           for(const ballID in this.balls) {
             const ball = this.balls[ballID];
             if(ball === pair.bodyA || ball === pair.bodyB) {
-              toRemoveBall = ball;
+              toRemoveBall = ballID;
             }
           }
         }
       }
+  
       // Removes Tank/Ball from the game
-      if(toRemoveBall && toRemoveTank) {
-        Matter.Composite.remove(this.world, toRemoveBall);
-        Matter.Composite.remove(this.world, toRemoveTank);
+      if(toRemoveBall && toRemoveTank) {        
+        Matter.Composite.remove(this.world, this.balls[toRemoveBall]);
+        delete this.balls[toRemoveBall];
+        Matter.Composite.remove(this.world, this.tanks[toRemoveTank].body);
+        delete this.tanks[toRemoveTank];
       }
 
     });
@@ -75,6 +79,7 @@ export class Engine {
     this.tanks = {};
     Matter.Composite.clear(this.world, true);
   }
+    
   getTanks() {
     return this.tanks;
   }
@@ -82,6 +87,7 @@ export class Engine {
   getBalls() {
     return this.balls;
   }
+
   
   loadStaticWalls() {
     // Single Map
@@ -130,8 +136,8 @@ class Tank {
     const shape = this.getTankShape(position, playerCount);
     this.body = Matter.Body.create({
       parts: [shape, // Unique Shape 
-              Matter.Bodies.circle(position.x, position.y, this.bodySize/3), // Turret p1
-              Matter.Bodies.rectangle(position.x,position.y - this.bodySize/2, this.bodySize/3, this.bodySize/1.75)], // Turret p2
+              Matter.Bodies.circle(position.x, position.y, this.bodySize/3, {label: 'tank'}), // Turret p1
+              Matter.Bodies.rectangle(position.x,position.y - this.bodySize/2, this.bodySize/3, this.bodySize/1.75, {label: 'tank'})], // Turret p2
       label: 'tank',
       render: { lineWidth: 1},
     });
@@ -145,16 +151,16 @@ class Tank {
     switch(playerCount) {
       case 0:
         this.shape = 'square';
-        return Matter.Bodies.rectangle(position.x, position.y, this.bodySize, this.bodySize);
+        return Matter.Bodies.rectangle(position.x, position.y, this.bodySize, this.bodySize, {label: 'tank'});
       case 1:
         this.shape = 'pentagon';
-        return Matter.Bodies.polygon(position.x, position.y, 5, this.bodySize/1.5);
+        return Matter.Bodies.polygon(position.x, position.y, 5, this.bodySize/1.5, {label: 'tank'});
       case 2:
         this.shape = 'decagon';
-        return Matter.Bodies.polygon(position.x, position.y, 10, this.bodySize/1.5);
+        return Matter.Bodies.polygon(position.x, position.y, 10, this.bodySize/1.5, {label: 'tank'});
       case 3:
         this.shape = 'circle';
-        return Matter.Bodies.circle(position.x, position.y, this.bodySize/2);
+        return Matter.Bodies.circle(position.x, position.y, this.bodySize/2, {label:'tank'});
     }
     
     return Matter.Bodies.rectangle(position.x, position.y, this.bodySize, this.bodySize);
