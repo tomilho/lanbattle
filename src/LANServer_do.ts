@@ -169,13 +169,13 @@ export class LANServer implements Game.Network {
               actor = Render.CONTROLLER;              
               this.game.addTank(clientID);
             }
+
             // Sends welcome information
             webSocket.send(JSON.stringify({
               type: 'wlcm',
               data: {
                 actor: actor,
                 clientID: clientID,
-                qr: 'no qr for now...',
               }
             } as Message.Welcome));
             break;

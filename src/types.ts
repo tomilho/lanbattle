@@ -42,7 +42,6 @@ export namespace Message {
     data: {
       actor: Render,
       clientID: string,
-      qr: string | null,
     }
   }
   export interface Ping {

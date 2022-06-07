@@ -249,14 +249,30 @@ class Display {
   #runner;
   #bodies
   #bodySize;
+
   constructor(client) {
-    document.body.innerHTML = '';
+
+    document.body.innerHTML = `<div id="container" class="container">
+                                <h1 class="display-title">LAN Battle Display</h1>
+                                <div class="header-info">A couch game to play with up-to 3 friends.</div>
+                                <span class="display-int">
+                                  ⬇️Scan the QR code below to quickly join with your phone⬇️
+                                </span>
+                                <div id="qrcode" class></div>
+                                <span class="display-int">
+                                  Scroll the page down to the canvas to see the game the game! As soon as you press
+                                  "ready?", you will start controlling the tank!!!
+                                </span>
+                              </div>
+                              `;
+    this.#generateQRCode();
+
     this.#bodySize = 32;
     this.#client = client;
     this.#bodies = {};
     // Although, there is also an engine here this is needed to 
     // draw the bodies. So to make sure there isn't any kind 
-    // of collision resolution, all bodies are set to be a sensor 
+    // of collision resolution going on, all bodies are set to be a sensor 
     // which makes the body to not react on collision!
     // https://brm.io/matter-js/docs/classes/Body.html#property_isSensor
     this.#engine = Matter.Engine.create({
@@ -268,7 +284,7 @@ class Display {
     });
     this.#world = this.#engine.world;
     this.#render = Matter.Render.create({
-      element: document.body,
+      element: document.getElementById('container'),
       engine: this.#engine,
       options: {
         width: 800,
@@ -289,6 +305,12 @@ class Display {
       this.#processMessages();
     });
     
+  }
+
+  #generateQRCode() {
+    new QRCode(document.getElementById('qrcode'), {
+      text: window.location.href
+    })
   }
 
   #addWalls() {

@@ -31,10 +31,7 @@ export default {
       // Generates a random code to be used to create a new DO. 
       // This is not the best use of KV, but I wanted to give 
       // KV a try. 
-      let code = nanoid(8);
-      if(true) {
-        code = '12345678';
-      }      
+      let code = nanoid(8); 
       // Creates an unique ID as it will be significantly faster 
       // than creating a DO using the generated Party Code.
       const doUID = env.LANServer.newUniqueId().toString();
@@ -51,9 +48,8 @@ export default {
       
       // If such party does not exit return 404.
       if(doUID === null) {
-        return new Response("Couldn't find a party with that code... :(", { status: 404 });
+        return new Response("Couldn't find a party with that code... Maybe create a new party? Do note that parties are deleted as soon as the server loses connection to the display (i.e page refresh))", { status: 404 });
       }
-
       
       // Pass the request to Durable Object to initiate the game
       if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {

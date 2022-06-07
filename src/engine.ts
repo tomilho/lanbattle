@@ -89,7 +89,6 @@ export class Engine {
   getBalls() {
     return this.balls;
   }
-
   
   loadStaticWalls() {
     // Single Map
