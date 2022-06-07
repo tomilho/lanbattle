@@ -6,6 +6,9 @@ import { Engine } from './engine';
 interface Controller {
   storage: DurableObjectStorage;
 }
+interface Enviroment {
+  PartyCodes: KVNamespace;
+}
 /**
  * Durable Object for the LAN party game server.
  * 
@@ -15,20 +18,22 @@ interface Controller {
  */
 export class LANServer implements Game.Network {
   storage: DurableObjectStorage;
+  env: Enviroment;
   display: { ws: WebSocket, id: string } | undefined;
   clients: WebSocket[];
-
   interval: number;
+  partyCode: string;
   messageBuffer: Message.Incoming[];
   game: Engine;
 
-  constructor(controller: Controller, env: any) {
+  constructor(controller: Controller, env: Enviroment) {
     this.storage = controller.storage;
+    this.env = env;
     this.display = undefined;
     this.game = new Engine();
     this.messageBuffer = [];
     this.clients = [];
-
+    this.partyCode = '';
     // Starts the main game loop.
     this.interval = setInterval(() => this.mainLoop(), 33.333);
   }
@@ -88,29 +93,34 @@ export class LANServer implements Game.Network {
         
       }
     
-      if(outMessages.length > 0) {
+      if(outMessages.length > 0 && this.display.ws.readyState === WebSocket.READY_STATE_OPEN) {
         ws.send(JSON.stringify(outMessages));
       }
     }
   }
 
   async fetch(request: Request) {
+    if(!this.partyCode) {
+      const url = new URL(request.url);
+      this.partyCode = url.pathname.substring(1);
+    }
+
     // Check if the party is full
     if (this.clients.length === 5) {
       return new Response("The party is full! :(", { status: 403 }) // Forbidden Status
     } 
-
+    
     // To accept the WebSocket request, we create a WebSocketPair (which is like a socketpair,
     // i.e. two WebSockets that talk to each other), we return one end of the pair in the
     // response, and we operate on the other end. Note that this API is not part of the
     // Fetch API standard; 
     let pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    
+
     // Handles the newly created session - Async reception of client message which are stored
     // in a buffer to be later processed on the main game loop. 
     await this.handleSession(server);
-    
+
     // Now we return the other end of the pair to the client.
     return new Response(null, { status: 101, webSocket: client });
   }
@@ -133,7 +143,7 @@ export class LANServer implements Game.Network {
 
         // Init, Error Message Type -> Processed outside of the game loop
         switch(message.type) {
-          case 'init':
+          case 'init':            
             let actor = undefined;
             if(this.clients.length === 1) {
               actor = Render.DISPLAY;
@@ -155,8 +165,10 @@ export class LANServer implements Game.Network {
           case 'err':
             console.log(message.data.error);
             break;
-          default:
-            this.messageBuffer.push(message);
+          default:                        
+            if(this.display) {
+              this.messageBuffer.push(message);
+            }
         }
       } catch(err) {
         console.log(err)
@@ -164,15 +176,44 @@ export class LANServer implements Game.Network {
       }
     }
 
-    const onClose: ((ev: CloseEvent) => any) = (event) => {
-      // TODO: handler close better...
-      if(this.display && webSocket === this.display.ws) {
+    const onClose: ((ev: CloseEvent) => any) = async (event) => {
+      console.log('close');
+      
+      // If display disconnects, disconnect all the players
+      if(this.display && webSocket === this.display.ws) {        
         this.display = undefined;
-      }
+        // Deletes party code so other clients do not attempt to connect
+        // to this party after their connection has been closed
+        await this.env.PartyCodes.delete(this.partyCode);
+        // Stops the Main Game Loop 
+        clearInterval(this.interval);
+        // Notifies the controllers that the display has been lost in battle :(
+        setTimeout(() => {
+          const controllers = this.clients.filter(w => w !== webSocket);
+          controllers.forEach(client => {
+            // TODO: Solve this error -> miniflare crashes with little information....
+            // client.close(1001, 'display lost');
+            // Band aid solution is:
+            client.send('closepls');
+          });
+        }, 33.333);
+
+        this.game.clear();
+      } 
       this.clients = this.clients.filter(w => w !== webSocket);
     }
 
     const onError: ((ev: Event) => any) = (event) => {
+      console.log('error');
+      
+      // If display disconnects, disconnect all the players
+      if(this.display && webSocket === this.display.ws) {
+        this.display = undefined;
+        this.clients.filter(w => w != webSocket);
+        this.clients = [];
+        this.game.clear();
+        return;
+      } 
       this.clients = this.clients.filter(w => w !== webSocket);
     }
 

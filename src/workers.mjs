@@ -10,7 +10,6 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     let partyCode;
-
     // TODO: If some some time left: refactor the code to clean it up a bit
 
     // Serve static content
@@ -35,9 +34,7 @@ export default {
       let code = nanoid(8);
       if(true) {
         code = '12345678';
-      }
-      // Generates QR codes through 
-      
+      }      
       // Creates an unique ID as it will be significantly faster 
       // than creating a DO using the generated Party Code.
       const doUID = env.LANServer.newUniqueId().toString();

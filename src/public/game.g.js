@@ -55,6 +55,15 @@ class Client {
   async #handleSession() {
     const onMessage = async (event) => {
       try {
+        // Band aid solution to some odd problem with miniflare?
+        // @see onClose in LANServer_do.ts
+        if(event.data === 'closepls') {
+          const msg = document.getElementById('msg');
+          msg.innerText = `😟 The server lost connection to the display, so we have closed your connection. Create a new party to continue playing!`;    
+          this.#socket.close();
+          return;
+        }
+        
         const message = JSON.parse(
           typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data)
         );
@@ -63,7 +72,7 @@ class Client {
           this.actor = this.#actorPromise.resolve(message.data.actor)
           this.#id = message.data.clientID;
         } else if (message.type === 'err') {
-          console.log(message.error);
+          console.log(message.error); 
         } else {
           // Main loop messages are processed inside the 
           // game loop
@@ -83,6 +92,10 @@ class Client {
       
     }
     const onClose = (event) => {
+      if(event.reason === 'display lost') {
+        const msg = document.getElementById('msg');
+        msg.innerText = `😟 The server lost connection to the display, so we have closed your connection. Create a new party to continue playing!`;  
+      }
       console.log('connection lost')
     }
     const onError = (event) => {
@@ -347,7 +360,6 @@ class Display {
       messages.forEach(msg => {
         switch(msg.type) {
           case 'mov':
-            console.log(msg.data.tankID);
             if(!this.#bodies[msg.data.tankID]) {
               this.#addTank(msg.data);
             } else {

@@ -70,6 +70,11 @@ export class Engine {
     });
   }
 
+  clear() {
+    this.balls = {};
+    this.tanks = {};
+    Matter.Composite.clear(this.world, true);
+  }
   getTanks() {
     return this.tanks;
   }
