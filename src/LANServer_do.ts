@@ -1,4 +1,9 @@
-// TODO: Credit the wordle template
+// This project follows Cloudflare-Wordle Template
+// https://github.com/cloudflare/templates/tree/main/worker-example-wordle
+// 
+// I recommend you to check it out if you want to have a solid 
+// introduction to how to make simple games with workers!
+
 import { Message, Render, Game, Vector2 } from './types';
 import { nanoid } from 'nanoid';
 import { Engine } from './engine';

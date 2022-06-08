@@ -3,13 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Work+Sans&display=swap');    
+      
       html,
       body {
         display: grid;
         place-items: center center;
         min-height: 100vh;
+        font-family: 'Work Sans', sans-serif;
+        background-color: rgb(60, 66, 85);
+        color: white;
       }
 
       * {
@@ -17,12 +21,26 @@
         padding: 0;
       }
 
+      .help {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+
+      .help-item {
+        width: 15rem;
+        margin: 1rem;
+        text-align: left;
+      }
+
       h1 {
         text-align: center;
       }
+
       .header-info {
         text-align: center;
-        color: gray;
+        color: #f6821f;
       }
       
       .options {
@@ -31,14 +49,14 @@
       }
       
       .options button {
-        padding: 0.25rem; 
-        margin: 0.20rem;
+        padding: 1.25rem; 
+        -webkit-appearance: none;
+        font-size: 1.1rem;
       }
     </style>
     <script>
       async function createParty() {
-        const party = await fetch('/new');
-        location.href = party.url;        
+        window.location.href = window.location.href + 'new';    
       }
     </script>
   </head>
@@ -49,21 +67,41 @@
         <h1>LAN Tank Battle</h1>
         <div class="header-info">A couch game to play with up-to 3 friends.</div>
         <div class="options">
-          <button>Connect to a lobby</button>
-          <button onclick="createParty()">Create a new lobby (This device will be the shared display)</button>
+          <button onclick="createParty()">Create a new party (This device will be the display)</button>
         </div>
+        <div class="help">
+          <div class="help-item">
+          <h2>Quick Introduction</h2>
+            <p>To play you'll need all players to use their phone as controllers and a display device, such as laptop or tv, as the shared display.
+              It is recommend to use a large screen so all players can be comfortable to play. 
+            </p>
+          </div>
+          <div class="help-item">
+            <h2>Creating the lobby</h2>
+              <p>
+                Simple click on "create a new party" button on the display device. You'll be redirected to
+                a new page with a QR code. Simply scan the QR code with your phone and you'll join.
+              </p>
+          </div>
+          <div class="help-item">
+            <h2>📱How to Play🕹️</h2>
+            <p> Firstly, you must have your phone in 📱 portrait orientation (that's when the phone is vertical) facing you. If you try
+              to play in landscape mode, your tank will start to do flips in the slightiest movement. At the moment, you only
+              have two interactions: 💥 firing and 🔄 rotating. 
+              <p>💥 To fire simply press anywhere on the page. </p>
+              <p>🔄 Rotating happens
+              when you move your phone is tilted side to side (or, holding your phone, rotate your hand).
+              </p>
+            </p>
+          </div> 
+          <div class="help-item">
+            <h2>⚠️WIP⚠️</h2>
+            <p>This project is still a work-in-progress. Many key features are missing, such as rate limiter, rejoin after accidental
+              phone lock and more, but I hope you at least enjoy playing this early build of the game :D.
+            </p>
+          </div>             
       </div>
-      <div class="help">
-        <h2>Quick Introduction</h2>
-          <p>To play you'll need all players to use their phone as controllers and a display device, such as laptop or tv, to display the game.
-            It is recommend to use a large screen so all players can be comfortable to play. 
-          </p>
-        <h2>Creating the lobby</h2>
-         <p>
-            Simple press on "create a new lobby" on the display device. Soon you'll see a QR code 
-        </p>
-        <h2>Inviting friends</h2>
-      </div>
+
     </main>
 
   </body>
